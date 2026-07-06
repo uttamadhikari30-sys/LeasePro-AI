@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "D:\\LeasePro-AI\\apps\\web"],
+      "port": 3000
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d D:\\LeasePro-AI\\apps\\api && .venv\\Scripts\\python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      ],
+      "port": 8000
+    }
+  ]
+}
