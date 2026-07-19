@@ -59,7 +59,7 @@ export default function ReportsPage() {
             key={value}
             onClick={() => setTab(value)}
             className={`px-4 py-2 text-sm font-medium ${
-              tab === value ? "border-b-2 border-indigo-600 text-indigo-700" : "text-slate-500 hover:text-slate-700"
+              tab === value ? "border-b-2 border-edme-blue text-edme-blue" : "text-slate-500 hover:text-slate-700"
             }`}
           >
             {label}

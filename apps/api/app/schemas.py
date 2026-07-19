@@ -31,6 +31,28 @@ class OrganizationOut(BaseModel):
     short_term_threshold_months: int
 
 
+class ProfileOut(BaseModel):
+    id: UUID
+    org_id: UUID
+    full_name: Optional[str] = None
+    role: str
+    created_at: datetime
+
+
+class UserCreate(BaseModel):
+    email: str
+    full_name: str
+    role: str = "VIEWER"
+
+
+class UserCreateResponse(BaseModel):
+    id: UUID
+    email: str
+    full_name: str
+    role: str
+    temporary_password: str
+
+
 class OrganizationUpdate(BaseModel):
     name: Optional[str] = None
     cin: Optional[str] = None

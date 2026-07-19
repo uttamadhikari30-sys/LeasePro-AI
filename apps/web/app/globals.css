@@ -10,6 +10,13 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Edme Insurance Brokers Limited brand palette */
+  --color-edme-blue: #1c3687;
+  --color-edme-blue-2: #15287a;
+  --color-edme-blue-deep: #0b1b5e;
+  --color-edme-red: #ed1b2f;
+  --color-edme-red-2: #c81528;
 }
 
 @media (prefers-color-scheme: dark) {

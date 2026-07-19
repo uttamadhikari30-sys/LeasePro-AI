@@ -12,6 +12,24 @@ export type ModificationType =
   | "FULL_TERMINATION"
   | "PARTIAL_TERMINATION";
 
+export type UserRole = "ADMIN" | "ACCOUNTANT" | "APPROVER" | "VIEWER";
+
+export interface Profile {
+  id: string;
+  org_id: string;
+  full_name: string | null;
+  role: UserRole;
+  created_at: string;
+}
+
+export interface UserCreateResponse {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  temporary_password: string;
+}
+
 export interface Organization {
   id: string;
   name: string;

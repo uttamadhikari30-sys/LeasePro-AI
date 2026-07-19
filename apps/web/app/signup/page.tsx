@@ -51,7 +51,7 @@ export default function SignupPage() {
             We sent a confirmation link to {email}. Confirm it, then sign in to finish setting up
             your organization.
           </p>
-          <Link href="/login" className="mt-4 inline-block text-sm font-medium text-indigo-600 hover:underline">
+          <Link href="/login" className="mt-4 inline-block text-sm font-medium text-edme-blue hover:underline">
             Back to sign in
           </Link>
         </div>
@@ -89,7 +89,7 @@ export default function SignupPage() {
         </form>
         <p className="mt-4 text-center text-sm text-slate-500">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-indigo-600 hover:underline">
+          <Link href="/login" className="font-medium text-edme-blue hover:underline">
             Sign in
           </Link>
         </p>

@@ -247,7 +247,7 @@ export default function NewLeasePage() {
           <CardHeader><CardTitle>Notes</CardTitle></CardHeader>
           <CardContent>
             <textarea
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edme-blue"
               rows={3}
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}

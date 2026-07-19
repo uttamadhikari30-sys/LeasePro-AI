@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LeasePro AI",
-  description: "Smart Lease Accounting. Powered by AI. Compliant with Ind AS 116 & IFRS 16.",
+  title: "edme · LeasePro AI",
+  description: "Edme Insurance Brokers Limited — Smart Lease Accounting. Compliant with Ind AS 116 & IFRS 16.",
+  icons: { icon: "/edme-logo.svg" },
 };
 
 export default function RootLayout({

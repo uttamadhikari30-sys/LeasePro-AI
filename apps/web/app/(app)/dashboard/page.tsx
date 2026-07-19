@@ -70,7 +70,7 @@ export default function DashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Recent leases</CardTitle>
-          <Link href="/leases" className="text-sm font-medium text-indigo-600 hover:underline">
+          <Link href="/leases" className="text-sm font-medium text-edme-blue hover:underline">
             View all
           </Link>
         </CardHeader>
@@ -89,7 +89,7 @@ export default function DashboardPage() {
               {leases.slice(0, 8).map((lease) => (
                 <tr key={lease.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
                   <td className="px-5 py-3">
-                    <Link href={`/leases/${lease.id}`} className="font-medium text-indigo-600 hover:underline">
+                    <Link href={`/leases/${lease.id}`} className="font-medium text-edme-blue hover:underline">
                       {lease.lease_code}
                     </Link>
                   </td>
