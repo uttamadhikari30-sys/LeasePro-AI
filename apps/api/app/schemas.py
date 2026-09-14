@@ -248,6 +248,34 @@ class JournalEntryOut(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# AI document extraction
+# ---------------------------------------------------------------------------
+class ExtractedLeaseFields(BaseModel):
+    lessor_name: Optional[str] = None
+    asset_name: Optional[str] = None
+    asset_category: Optional[str] = None
+    location: Optional[str] = None
+    commencement_date: Optional[date] = None
+    lease_term_months: Optional[int] = None
+    non_cancellable_period_months: Optional[int] = None
+    renewal_option_months: Optional[int] = None
+    payment_frequency: Optional[PaymentFrequency] = None
+    payment_timing: Optional[PaymentTiming] = None
+    base_payment_amount: Optional[Decimal] = None
+    escalation_type: Optional[EscalationType] = None
+    escalation_percent: Optional[Decimal] = None
+    escalation_frequency_months: Optional[int] = None
+    currency: Optional[str] = None
+    security_deposit_amount: Optional[Decimal] = None
+    notes: Optional[str] = None
+
+
+class LeaseExtractionResponse(BaseModel):
+    fields: ExtractedLeaseFields
+    warnings: list[str] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
 # Reports / disclosures
 # ---------------------------------------------------------------------------
 class MaturityBucketOut(BaseModel):

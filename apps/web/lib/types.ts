@@ -151,6 +151,31 @@ export interface MaturityBucket {
   undiscounted_amount: string;
 }
 
+export interface ExtractedLeaseFields {
+  lessor_name: string | null;
+  asset_name: string | null;
+  asset_category: string | null;
+  location: string | null;
+  commencement_date: string | null;
+  lease_term_months: number | null;
+  non_cancellable_period_months: number | null;
+  renewal_option_months: number | null;
+  payment_frequency: PaymentFrequency | null;
+  payment_timing: PaymentTiming | null;
+  base_payment_amount: string | null;
+  escalation_type: EscalationType | null;
+  escalation_percent: string | null;
+  escalation_frequency_months: number | null;
+  currency: string | null;
+  security_deposit_amount: string | null;
+  notes: string | null;
+}
+
+export interface LeaseExtractionResponse {
+  fields: ExtractedLeaseFields;
+  warnings: string[];
+}
+
 export interface DisclosureSummary {
   total_rou_asset_nbv: string;
   total_lease_liability: string;

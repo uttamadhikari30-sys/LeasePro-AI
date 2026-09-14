@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from postgrest.exceptions import APIError
 
 from .config import get_settings
-from .routers import leases, lessors, organizations, reports, security_deposits
+from .routers import ai, leases, lessors, organizations, reports, security_deposits
 
 settings = get_settings()
 
@@ -37,6 +37,7 @@ app.include_router(lessors.router)
 app.include_router(leases.router)
 app.include_router(security_deposits.router)
 app.include_router(reports.router)
+app.include_router(ai.router)
 
 
 @app.get("/health")

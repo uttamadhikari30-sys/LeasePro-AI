@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     supabase_service_role_key: str
     supabase_jwt_aud: str = "authenticated"
     allowed_origins: str = "http://localhost:3000"
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-4-5"
 
     @property
     def allowed_origins_list(self) -> list[str]:

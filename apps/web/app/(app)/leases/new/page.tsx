@@ -1,14 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { api } from "@/lib/api";
-import type { Lease, Lessor } from "@/lib/types";
+import { api, ApiError } from "@/lib/api";
+import type { Lease, LeaseExtractionResponse, Lessor } from "@/lib/types";
 
 const initialForm = {
   lessor_id: "",
@@ -52,12 +52,69 @@ export default function NewLeasePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [extractWarnings, setExtractWarnings] = useState<string[]>([]);
+  const [unmatchedLessorName, setUnmatchedLessorName] = useState<string | null>(null);
+
   useEffect(() => {
     api.get<Lessor[]>("/lessors").then(setLessors);
   }, []);
 
   function set<K extends keyof typeof initialForm>(key: K, value: (typeof initialForm)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleExtractFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setExtracting(true);
+    setExtractError(null);
+    setExtractWarnings([]);
+    setUnmatchedLessorName(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const result = await api.postForm<LeaseExtractionResponse>("/ai/extract-lease", formData);
+      const f = result.fields;
+
+      setForm((prev) => ({
+        ...prev,
+        asset_name: f.asset_name ?? prev.asset_name,
+        asset_category: f.asset_category ?? prev.asset_category,
+        location: f.location ?? prev.location,
+        commencement_date: f.commencement_date ?? prev.commencement_date,
+        lease_term_months: f.lease_term_months ?? prev.lease_term_months,
+        non_cancellable_period_months: f.non_cancellable_period_months ?? prev.non_cancellable_period_months,
+        renewal_option_months: f.renewal_option_months ?? prev.renewal_option_months,
+        payment_frequency: f.payment_frequency ?? prev.payment_frequency,
+        payment_timing: f.payment_timing ?? prev.payment_timing,
+        base_payment_amount: f.base_payment_amount ?? prev.base_payment_amount,
+        escalation_type: f.escalation_type ?? prev.escalation_type,
+        escalation_percent: f.escalation_percent ?? prev.escalation_percent,
+        escalation_frequency_months: f.escalation_frequency_months ?? prev.escalation_frequency_months,
+        currency: f.currency ?? prev.currency,
+        notes: f.notes ?? prev.notes,
+      }));
+
+      if (f.lessor_name) {
+        const match = lessors.find((l) => l.name.toLowerCase().trim() === f.lessor_name!.toLowerCase().trim());
+        if (match) {
+          set("lessor_id", match.id);
+        } else {
+          setUnmatchedLessorName(f.lessor_name);
+        }
+      }
+
+      setExtractWarnings(result.warnings);
+    } catch (err) {
+      setExtractError(err instanceof ApiError ? err.message : "Failed to extract lease terms from this document");
+    } finally {
+      setExtracting(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -83,6 +140,45 @@ export default function NewLeasePage() {
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">New lease</h1>
         <p className="text-sm text-slate-500">Enter the contract terms; the Ind AS 116 / IFRS 16 schedules are computed after saving.</p>
       </div>
+
+      <Card className="border-edme-blue/20 bg-edme-blue/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span aria-hidden>✨</span> Auto-fill from a lease document
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-slate-600">
+            Upload a lease agreement (PDF or scanned image) and AI will read it and pre-fill the fields below. Always
+            review the extracted values before saving.
+          </p>
+          <div className="flex items-center gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-edme-blue/40 bg-white px-4 py-2 text-sm font-medium text-edme-blue shadow-sm hover:bg-edme-blue/10">
+              {extracting ? "Reading document…" : "Choose file"}
+              <input
+                type="file"
+                accept="application/pdf,image/png,image/jpeg,image/webp"
+                className="hidden"
+                disabled={extracting}
+                onChange={handleExtractFile}
+              />
+            </label>
+            {extracting && <span className="text-sm text-slate-500">This can take up to a minute for long contracts…</span>}
+          </div>
+          {extractError && <p className="text-sm text-red-600">{extractError}</p>}
+          {unmatchedLessorName && (
+            <p className="text-sm text-amber-700">
+              Lessor "{unmatchedLessorName}" was found in the document but doesn't match any existing lessor — add them
+              in the Lessors section first, then select manually below.
+            </p>
+          )}
+          {extractWarnings.length > 0 && (
+            <ul className="list-inside list-disc space-y-1 text-sm text-amber-700">
+              {extractWarnings.map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
