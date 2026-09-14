@@ -36,6 +36,18 @@ async def postgrest_api_error_handler(request: Request, exc: APIError):
         return JSONResponse(status_code=404, content={"detail": "Resource not found"})
     return JSONResponse(status_code=400, content={"detail": exc.message})
 
+
+@app.exception_handler(Exception)
+async def unhandled_error_handler(request: Request, exc: Exception):
+    # Any exception that isn't caught above would otherwise be handled by
+    # Starlette's outer ServerErrorMiddleware, which sits *outside*
+    # CORSMiddleware and so returns a response with no CORS headers -- the
+    # browser then reports this to the frontend as an opaque "Failed to
+    # fetch" instead of a real error message. Returning a normal JSONResponse
+    # from here keeps it inside the middleware stack so CORS headers (and a
+    # useful error message) still reach the client.
+    return JSONResponse(status_code=500, content={"detail": f"{type(exc).__name__}: {exc}"})
+
 app.include_router(organizations.router)
 app.include_router(lessors.router)
 app.include_router(leases.router)
