@@ -17,6 +17,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,
+    # Covers the production domain and every Vercel preview deployment
+    # (e.g. leasepro-ai-hq1ka4n17-uttamadhikari30-sys-projects.vercel.app)
+    # without needing ALLOWED_ORIGINS updated on every deploy.
+    allow_origin_regex=r"https://leasepro-ai(-[a-z0-9]+)*(-uttamadhikari30-sys-projects)?\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
