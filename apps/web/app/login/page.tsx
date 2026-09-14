@@ -175,8 +175,12 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="h-11 w-full rounded-xl bg-slate-900 text-[13px] font-semibold tracking-wide text-white shadow-none hover:bg-slate-800"
+            className="group relative h-11 w-full overflow-hidden rounded-xl bg-linear-to-b from-edme-red to-edme-red-2 text-[13px] font-semibold tracking-wide text-white shadow-[0_1px_0_rgba(255,255,255,0.25)_inset,0_10px_24px_-8px_rgba(237,27,47,0.55)] transition-all hover:shadow-[0_1px_0_rgba(255,255,255,0.25)_inset,0_14px_28px_-8px_rgba(237,27,47,0.65)] hover:brightness-105 active:brightness-95"
           >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-linear-to-b from-white/15 to-transparent"
+            />
             {loading ? (
               <>
                 <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 animate-spin">
