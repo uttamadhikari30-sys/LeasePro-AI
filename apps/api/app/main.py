@@ -102,37 +102,24 @@ def debug_conn():
         except Exception as exc:  # noqa: BLE001
             results[name] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
-    from . import dns_patch
+    import socket
 
-    host = httpx.URL(url).host
-    results["patch_installed"] = dns_patch._installed
-    results["doh_resolve"] = list(dns_patch._resolve_via_doh(host))
-    results["effective_ips"] = list(dns_patch._resolve(host))
+    # Probe the NEW us-east-1 project directly (hardcoded) to confirm the
+    # Vercel function can reach it before we cut env vars over to it.
+    new_url = "https://wmqyvrunvhcuohzyxmfm.supabase.co/rest/v1/"
+    new_key = (
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+        "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtcXl2cnVudmhjdW9oenl4bWZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4MjgwMzMsImV4cCI6MjEwNTQwNDAzM30."
+        "ZpbfdbOJKsOsOCM58Jl9PFKM9vwFJkyHd-TBg8wcKs8"
+    )
+    new_host = httpx.URL(new_url).host
 
-    # Pin the connection to a Cloudflare IP with correct SNI, bypassing DNS
-    # entirely, to confirm SNI-routing reaches Supabase.
-    def pinned_probe():
-        ip = dns_patch._FALLBACK_IPS[0]
-        transport = httpx.HTTPTransport()
-        with httpx.Client(
-            transport=transport,
-            timeout=10,
-            headers=headers,
-        ) as client:
-            # Map host -> ip via the patched getaddrinfo already; direct call:
-            r = client.get(url)
-            return type("R", (), {"status_code": r.status_code})
+    def dns_new():
+        return type("R", (), {"status_code": socket.gethostbyname(new_host)})
 
-    # With the DNS patch installed, these should now succeed.
-    probe("httpx_supabase", lambda: httpx.get(url, headers=headers, timeout=10))
-    probe("pinned_sni", pinned_probe)
-
-    def supabase_probe():
-        from supabase import create_client
-
-        c = create_client(settings.supabase_url, settings.supabase_anon_key)
-        n = len(c.table("organizations").select("id").limit(1).execute().data)
-        return type("R", (), {"status_code": f"ok ({n} rows)"})
-
-    probe("supabase_sdk", supabase_probe)
+    probe("new_project_dns", dns_new)
+    probe(
+        "new_project_httpx",
+        lambda: httpx.get(new_url, headers={"apikey": new_key, "Authorization": f"Bearer {new_key}"}, timeout=10),
+    )
     return results
