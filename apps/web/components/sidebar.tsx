@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, FileText, Building2, BarChart3, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { useProfile } from "@/lib/profile-context";
+import { useOrganization, useProfile } from "@/lib/profile-context";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -20,6 +20,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const profile = useProfile();
+  const organization = useOrganization();
   const navItems = profile?.role === "ADMIN" ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
 
   async function handleSignOut() {
@@ -32,9 +33,13 @@ export function Sidebar() {
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200 bg-white">
       <div className="border-b border-slate-100 px-6 py-5">
-        <img src="/edme-logo.svg" alt="edme" className="mb-2 h-6" />
-        <h1 className="text-lg font-bold tracking-tight text-slate-900">LeasePro AI</h1>
-        <p className="text-xs text-slate-400">Ind AS 116 &middot; IFRS 16</p>
+        <img src="/edme-logo.svg" alt="edme" className="mb-3 h-6" />
+        <p className="text-sm font-semibold leading-snug text-slate-900">
+          {organization?.name ?? "LeasePro AI"}
+        </p>
+        <p className="mt-0.5 text-xs text-slate-400">
+          LeasePro AI &middot; {organization?.reporting_standard === "IFRS_16" ? "IFRS 16" : "Ind AS 116"}
+        </p>
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navItems.map(({ href, label, icon: Icon }) => {
