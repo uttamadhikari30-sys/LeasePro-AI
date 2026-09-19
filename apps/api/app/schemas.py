@@ -132,6 +132,7 @@ class LeaseOut(LeaseCreate):
     id: UUID
     org_id: UUID
     status: str
+    agreement_filename: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

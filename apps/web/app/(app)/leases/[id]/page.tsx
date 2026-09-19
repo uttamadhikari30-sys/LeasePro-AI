@@ -28,6 +28,7 @@ export default function LeaseDetailPage() {
   const [calculating, setCalculating] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generateMsg, setGenerateMsg] = useState<string | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function loadAll() {
@@ -64,6 +65,33 @@ export default function LeaseDetailPage() {
       setError(err instanceof ApiError ? err.message : "Failed to generate journal entries");
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function handleUploadAgreement(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingDoc(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      await api.postForm(`/leases/${id}/document`, fd);
+      api.get<Lease>(`/leases/${id}`).then(setLease);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to upload agreement");
+    } finally {
+      setUploadingDoc(false);
+    }
+  }
+
+  async function handleViewAgreement() {
+    try {
+      const { url } = await api.get<{ url: string }>(`/leases/${id}/document`);
+      window.open(url, "_blank", "noopener");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to open agreement");
     }
   }
 
@@ -119,20 +147,41 @@ export default function LeaseDetailPage() {
       </div>
 
       {tab === "overview" && (
-        <Card>
-          <CardContent className="grid grid-cols-1 gap-x-8 gap-y-3 py-5 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Commencement date" value={formatDate(lease.commencement_date)} />
-            <Field label="Lease term" value={`${lease.lease_term_months} months`} />
-            <Field label="Payment" value={`${formatCurrency(lease.base_payment_amount, lease.currency)} / ${lease.payment_frequency.toLowerCase()}`} />
-            <Field label="Payment timing" value={lease.payment_timing} />
-            <Field label="Escalation" value={lease.escalation_type === "NONE" ? "None" : `${lease.escalation_percent}% every ${lease.escalation_frequency_months}mo`} />
-            <Field label="Initial direct costs" value={formatCurrency(lease.initial_direct_costs, lease.currency)} />
-            <Field label="Lease incentives" value={formatCurrency(lease.lease_incentives, lease.currency)} />
-            <Field label="Restoration cost estimate" value={formatCurrency(lease.restoration_cost_estimate, lease.currency)} />
-            <Field label="Short-term exemption" value={lease.is_short_term ? "Yes" : "No"} />
-            <Field label="Low-value exemption" value={lease.is_low_value ? "Yes" : "No"} />
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardContent className="grid grid-cols-1 gap-x-8 gap-y-3 py-5 sm:grid-cols-2 lg:grid-cols-3">
+              <Field label="Commencement date" value={formatDate(lease.commencement_date)} />
+              <Field label="Lease term" value={`${lease.lease_term_months} months`} />
+              <Field label="Payment" value={`${formatCurrency(lease.base_payment_amount, lease.currency)} / ${lease.payment_frequency.toLowerCase()}`} />
+              <Field label="Payment timing" value={lease.payment_timing} />
+              <Field label="Escalation" value={lease.escalation_type === "NONE" ? "None" : `${lease.escalation_percent}% every ${lease.escalation_frequency_months}mo`} />
+              <Field label="Initial direct costs" value={formatCurrency(lease.initial_direct_costs, lease.currency)} />
+              <Field label="Lease incentives" value={formatCurrency(lease.lease_incentives, lease.currency)} />
+              <Field label="Restoration cost estimate" value={formatCurrency(lease.restoration_cost_estimate, lease.currency)} />
+              <Field label="Short-term exemption" value={lease.is_short_term ? "Yes" : "No"} />
+              <Field label="Low-value exemption" value={lease.is_low_value ? "Yes" : "No"} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle>Lease agreement</CardTitle></CardHeader>
+            <CardContent className="flex flex-wrap items-center gap-4">
+              {lease.agreement_filename ? (
+                <div className="flex items-center gap-2 text-sm text-slate-700">
+                  <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs">{lease.agreement_filename}</span>
+                  <button onClick={handleViewAgreement} className="font-medium text-edme-blue hover:underline">View</button>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">No agreement attached yet.</p>
+              )}
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-edme-blue/40 bg-white px-4 py-2 text-sm font-medium text-edme-blue shadow-sm hover:bg-edme-blue/10">
+                {uploadingDoc ? "Uploading…" : lease.agreement_filename ? "Replace" : "Upload agreement"}
+                <input type="file" accept="application/pdf,image/png,image/jpeg,.doc,.docx" className="hidden" disabled={uploadingDoc} onChange={handleUploadAgreement} />
+              </label>
+              <span className="text-xs text-slate-400">PDF, Word or image · max 25 MB</span>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {tab === "liability" && (

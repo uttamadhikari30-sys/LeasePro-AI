@@ -1,11 +1,12 @@
+import re
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from supabase import Client
 
 from ..auth import CurrentUser, get_current_user
-from ..deps import get_user_scoped_db
+from ..deps import get_service_db, get_user_scoped_db
 from ..schemas import (
     CalculateLeaseRequest,
     CalculateLeaseResponse,
@@ -21,6 +22,66 @@ from ..schemas import (
 from ..services import audit_service, journal_service, lease_service
 
 router = APIRouter(prefix="/leases", tags=["leases"])
+
+_DOC_BUCKET = "lease-documents"
+_ALLOWED_DOC_TYPES = {
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+_MAX_DOC_BYTES = 25 * 1024 * 1024
+
+
+def _safe_filename(name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]", "_", name or "agreement")[:120]
+
+
+@router.post("/{lease_id}/document")
+async def upload_lease_document(
+    lease_id: UUID,
+    file: UploadFile = File(...),
+    user: CurrentUser = Depends(get_current_user),
+    db: Client = Depends(get_user_scoped_db),
+    admin_db: Client = Depends(get_service_db),
+):
+    """Attach the master lease agreement to a lease. Ownership is enforced via
+    the user-scoped client; the file is stored in a private bucket by the
+    service role."""
+    lease = db.table("leases").select("id, org_id").eq("id", str(lease_id)).single().execute().data
+    if not lease:
+        raise HTTPException(404, "Lease not found")
+    if file.content_type not in _ALLOWED_DOC_TYPES:
+        raise HTTPException(400, "Upload a PDF, Word document, or image of the lease agreement.")
+
+    contents = await file.read()
+    if len(contents) > _MAX_DOC_BYTES:
+        raise HTTPException(413, "File too large (max 25 MB).")
+
+    filename = _safe_filename(file.filename or "agreement")
+    path = f"{lease['org_id']}/{lease_id}/{filename}"
+    admin_db.storage.from_(_DOC_BUCKET).upload(
+        path, contents, {"content-type": file.content_type or "application/octet-stream", "upsert": "true"}
+    )
+    db.table("leases").update({"agreement_path": path, "agreement_filename": filename}).eq("id", str(lease_id)).execute()
+    audit_service.log_action(db, user.user_id, "UPLOAD_DOCUMENT", "lease", lease_id, after={"filename": filename})
+    return {"filename": filename}
+
+
+@router.get("/{lease_id}/document")
+def get_lease_document_url(
+    lease_id: UUID,
+    db: Client = Depends(get_user_scoped_db),
+    admin_db: Client = Depends(get_service_db),
+):
+    """Return a short-lived signed URL for the lease's agreement, or 404."""
+    lease = db.table("leases").select("agreement_path, agreement_filename").eq("id", str(lease_id)).single().execute().data
+    if not lease or not lease.get("agreement_path"):
+        raise HTTPException(404, "No agreement uploaded for this lease")
+    signed = admin_db.storage.from_(_DOC_BUCKET).create_signed_url(lease["agreement_path"], 3600)
+    url = signed.get("signedURL") or signed.get("signedUrl") or signed.get("signed_url")
+    return {"url": url, "filename": lease["agreement_filename"]}
 
 
 @router.get("", response_model=list[LeaseOut])

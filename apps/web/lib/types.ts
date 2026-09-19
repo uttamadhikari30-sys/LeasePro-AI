@@ -91,6 +91,7 @@ export interface Lease {
   tds_rate: string;
   status: LeaseStatus;
   notes: string | null;
+  agreement_filename: string | null;
   created_at: string;
   updated_at: string;
 }
