@@ -298,3 +298,31 @@ def delete_derived_journals(db: Client, lease_id: UUID) -> None:
     if ids:
         db.table("journal_lines").delete().in_("journal_entry_id", ids).execute()
         db.table("journal_entries").delete().in_("id", ids).execute()
+
+
+def create_transition_recognition_journal(
+    db: Client,
+    lease_id: UUID,
+    entry_date: date,
+    opening_rou_nbv: Decimal,
+    opening_liability: Decimal,
+    user_id: str,
+) -> dict:
+    """Opening-balance recognition for a lease brought in mid-life (Ind AS 116
+    modified-retrospective transition): Dr ROU asset and Cr lease liability at
+    their opening carrying amounts, with any difference taken to a transition
+    adjustment in retained earnings."""
+    lines = [
+        {"account_code": "ROU-ASSET", "account_name": "Right-of-Use Asset", "debit": str(opening_rou_nbv), "credit": "0"},
+        {"account_code": "LEASE-LIAB", "account_name": "Lease Liability", "debit": "0", "credit": str(opening_liability)},
+    ]
+    diff = opening_rou_nbv - opening_liability
+    if diff != 0:
+        if diff > 0:
+            lines.append({"account_code": "RETAINED-EARNINGS", "account_name": "Transition Adjustment (Retained Earnings)", "debit": "0", "credit": str(diff)})
+        else:
+            lines.append({"account_code": "RETAINED-EARNINGS", "account_name": "Transition Adjustment (Retained Earnings)", "debit": str(-diff), "credit": "0"})
+    return _insert_entry(
+        db, lease_id, entry_date, "INITIAL_RECOGNITION",
+        "Transition - opening balance recognition of ROU asset and lease liability", user_id, lines,
+    )

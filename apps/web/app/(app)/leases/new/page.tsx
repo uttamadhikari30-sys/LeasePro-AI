@@ -42,6 +42,10 @@ const initialForm = {
   gst_rate: "0",
   tds_applicable: false,
   tds_rate: "0",
+  is_transition: false,
+  opening_date: "",
+  opening_liability: "",
+  opening_rou_nbv: "",
   notes: "",
 };
 
@@ -134,6 +138,9 @@ export default function NewLeasePage() {
       const payload = {
         ...form,
         useful_life_months: form.useful_life_months ? Number(form.useful_life_months) : null,
+        opening_date: form.is_transition && form.opening_date ? form.opening_date : null,
+        opening_liability: form.is_transition && form.opening_liability ? form.opening_liability : null,
+        opening_rou_nbv: form.is_transition && form.opening_rou_nbv ? form.opening_rou_nbv : null,
       };
       const lease = await api.post<Lease>("/leases", payload);
       router.push(`/leases/${lease.id}`);
@@ -348,6 +355,36 @@ export default function NewLeasePage() {
               <div>
                 <Label htmlFor="tds_rate">TDS rate (%)</Label>
                 <Input id="tds_rate" type="number" step="0.01" value={form.tds_rate} onChange={(e) => set("tds_rate", e.target.value)} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Opening balances (transition)</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={form.is_transition} onChange={(e) => set("is_transition", e.target.checked)} />
+              This lease was already running when brought into LeasePro AI — start from opening balances
+            </label>
+            {form.is_transition && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <Label htmlFor="opening_date">Balances as of date</Label>
+                  <Input id="opening_date" type="date" value={form.opening_date} onChange={(e) => set("opening_date", e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="opening_liability">Opening lease liability</Label>
+                  <Input id="opening_liability" type="number" step="0.01" value={form.opening_liability} onChange={(e) => set("opening_liability", e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor="opening_rou_nbv">Opening ROU asset (NBV)</Label>
+                  <Input id="opening_rou_nbv" type="number" step="0.01" value={form.opening_rou_nbv} onChange={(e) => set("opening_rou_nbv", e.target.value)} />
+                </div>
+                <p className="text-xs text-slate-400 sm:col-span-3">
+                  The schedules will run from this date using only the remaining payments, starting at these balances — instead of
+                  recognising the lease afresh at commencement.
+                </p>
               </div>
             )}
           </CardContent>

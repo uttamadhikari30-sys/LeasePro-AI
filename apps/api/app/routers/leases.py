@@ -245,16 +245,24 @@ def generate_all_journals(
 
     counts = {"initial_recognition": 0, "period_entries": 0, "deposit_entries": 0}
 
-    journal_service.create_initial_recognition_journal(
-        db, lease_id, _date.fromisoformat(lease["commencement_date"]),
-        Decimal(str(rou_rows[0]["opening_nbv"])),
-        Decimal(str(liability_rows[0]["opening_liability"])),
-        Decimal(str(lease["initial_direct_costs"])),
-        Decimal(str(lease["prepaid_rent"])),
-        Decimal(str(lease["lease_incentives"])),
-        Decimal(str(lease["restoration_cost_estimate"])),
-        user.user_id,
-    )
+    if lease.get("is_transition") and lease.get("opening_date"):
+        journal_service.create_transition_recognition_journal(
+            db, lease_id, _date.fromisoformat(lease["opening_date"]),
+            Decimal(str(rou_rows[0]["opening_nbv"])),
+            Decimal(str(liability_rows[0]["opening_liability"])),
+            user.user_id,
+        )
+    else:
+        journal_service.create_initial_recognition_journal(
+            db, lease_id, _date.fromisoformat(lease["commencement_date"]),
+            Decimal(str(rou_rows[0]["opening_nbv"])),
+            Decimal(str(liability_rows[0]["opening_liability"])),
+            Decimal(str(lease["initial_direct_costs"])),
+            Decimal(str(lease["prepaid_rent"])),
+            Decimal(str(lease["lease_incentives"])),
+            Decimal(str(lease["restoration_cost_estimate"])),
+            user.user_id,
+        )
     counts["initial_recognition"] = 1
 
     rou_by_period = {r["period_number"]: r for r in rou_rows}

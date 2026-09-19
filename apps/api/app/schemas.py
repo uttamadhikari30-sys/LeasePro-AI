@@ -126,6 +126,12 @@ class LeaseCreate(BaseModel):
     is_low_value: bool = False
     useful_life_months: Optional[int] = None
 
+    # Transition / opening balances (leases already running on adoption).
+    is_transition: bool = False
+    opening_date: Optional[date] = None
+    opening_liability: Optional[Decimal] = None
+    opening_rou_nbv: Optional[Decimal] = None
+
     gst_applicable: bool = False
     gst_rate: Decimal = Decimal("0")
     tds_applicable: bool = False
