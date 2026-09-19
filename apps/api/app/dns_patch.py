@@ -21,6 +21,14 @@ from .config import get_settings
 _original_getaddrinfo = socket.getaddrinfo
 _installed = False
 
+# Cloudflare anycast IPs that front the Supabase host. Supabase sits behind
+# Cloudflare, which routes by TLS SNI, so connecting to any of these with the
+# hostname as SNI reaches the right project. Used as a fallback when neither
+# the system resolver nor DoH can resolve the name from the Vercel function's
+# network (AWS us-east-1 can't resolve *.supabase.co here, though it connects
+# to Cloudflare fine -- example.com works).
+_FALLBACK_IPS = ("104.18.38.10", "172.64.149.246")
+
 
 def _supabase_host() -> str:
     return (urlparse(get_settings().supabase_url).hostname or "").lower()
@@ -29,8 +37,7 @@ def _supabase_host() -> str:
 @lru_cache(maxsize=16)
 def _resolve_via_doh(host: str) -> tuple[str, ...]:
     """Resolve A records for `host` via DNS-over-HTTPS. Uses httpx (bundled
-    certifi CA -- urllib's system-CA verification fails on Vercel). The DoH
-    provider hostnames themselves resolve fine through the system resolver."""
+    certifi CA -- urllib's system-CA verification fails on Vercel)."""
     import httpx
 
     providers = (
@@ -49,6 +56,11 @@ def _resolve_via_doh(host: str) -> tuple[str, ...]:
     return ()
 
 
+@lru_cache(maxsize=16)
+def _resolve(host: str) -> tuple[str, ...]:
+    return _resolve_via_doh(host) or _FALLBACK_IPS
+
+
 def install() -> None:
     global _installed
     if _installed:
@@ -64,7 +76,7 @@ def install() -> None:
             if isinstance(host, (bytes, bytearray)):
                 host = host.decode()
             if host and host.lower() == target:
-                ips = _resolve_via_doh(host.lower())
+                ips = _resolve(host.lower())
                 if ips:
                     p = port if isinstance(port, int) else 0
                     return [

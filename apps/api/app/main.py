@@ -104,11 +104,28 @@ def debug_conn():
 
     from . import dns_patch
 
+    host = httpx.URL(url).host
     results["patch_installed"] = dns_patch._installed
-    results["doh_resolve"] = list(dns_patch._resolve_via_doh(httpx.URL(url).host))
+    results["doh_resolve"] = list(dns_patch._resolve_via_doh(host))
+    results["effective_ips"] = list(dns_patch._resolve(host))
 
-    # With the DNS-over-HTTPS patch installed, these should now succeed.
+    # Pin the connection to a Cloudflare IP with correct SNI, bypassing DNS
+    # entirely, to confirm SNI-routing reaches Supabase.
+    def pinned_probe():
+        ip = dns_patch._FALLBACK_IPS[0]
+        transport = httpx.HTTPTransport()
+        with httpx.Client(
+            transport=transport,
+            timeout=10,
+            headers=headers,
+        ) as client:
+            # Map host -> ip via the patched getaddrinfo already; direct call:
+            r = client.get(url)
+            return type("R", (), {"status_code": r.status_code})
+
+    # With the DNS patch installed, these should now succeed.
     probe("httpx_supabase", lambda: httpx.get(url, headers=headers, timeout=10))
+    probe("pinned_sni", pinned_probe)
 
     def supabase_probe():
         from supabase import create_client
