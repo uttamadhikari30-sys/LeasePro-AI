@@ -42,8 +42,8 @@ export default function DashboardPage() {
   const categoryTotal = categories.reduce((s, [, v]) => s + v, 0) || 1;
 
   const stats = [
-    { label: "Total ROU Asset (NBV)", value: formatCurrency(summary?.total_rou_asset_nbv ?? "0"), icon: Building2, tint: "text-edme-blue", bg: "bg-edme-blue/10" },
-    { label: "Total Lease Liability", value: formatCurrency(summary?.total_lease_liability ?? "0"), icon: TrendingDown, tint: "text-edme-red", bg: "bg-edme-red/10" },
+    { label: "Total ROU Asset (NBV)", value: formatCurrency(summary?.total_rou_asset_nbv ?? "0"), icon: Building2, tint: "text-edme-blue", bg: "bg-edme-blue/10", sub: undefined as string | undefined },
+    { label: "Total Lease Liability", value: formatCurrency(summary?.total_lease_liability ?? "0"), icon: TrendingDown, tint: "text-edme-red", bg: "bg-edme-red/10", sub: `Current ${formatCurrency(summary?.current_lease_liability ?? "0")} · Non-current ${formatCurrency(summary?.non_current_lease_liability ?? "0")}` },
     { label: "Weighted Avg. Discount Rate", value: `${(parseFloat(summary?.weighted_average_discount_rate ?? "0") * 100).toFixed(2)}%`, icon: Percent, tint: "text-violet-600", bg: "bg-violet-100" },
     { label: "Active Leases", value: String(activeCount), icon: FileCheck2, tint: "text-emerald-600", bg: "bg-emerald-100" },
   ];
@@ -72,7 +72,7 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map(({ label, value, icon: Icon, tint, bg }) => (
+        {stats.map(({ label, value, icon: Icon, tint, bg, sub }) => (
           <Card key={label}>
             <CardContent className="flex items-center gap-4 py-5">
               <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bg}`}>
@@ -81,6 +81,7 @@ export default function DashboardPage() {
               <div className="min-w-0">
                 <p className="truncate text-xs font-medium text-slate-500">{label}</p>
                 <p className="mt-0.5 text-xl font-semibold text-slate-900">{loading ? "…" : value}</p>
+                {sub && !loading && <p className="mt-0.5 text-[11px] text-slate-400">{sub}</p>}
               </div>
             </CardContent>
           </Card>

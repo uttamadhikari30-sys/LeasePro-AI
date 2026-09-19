@@ -40,6 +40,9 @@ export interface Organization {
   fiscal_year_start_month: number;
   low_value_asset_threshold: string;
   short_term_threshold_months: number;
+  discount_rate_mode: "UNIFORM" | "PER_LEASE";
+  default_lease_discount_rate: string;
+  default_deposit_discount_rate: string;
 }
 
 export interface Lessor {
@@ -180,6 +183,8 @@ export interface LeaseExtractionResponse {
 export interface DisclosureSummary {
   total_rou_asset_nbv: string;
   total_lease_liability: string;
+  current_lease_liability: string;
+  non_current_lease_liability: string;
   weighted_average_discount_rate: string;
   maturity_analysis: MaturityBucket[];
   total_cash_outflow_ytd: string;

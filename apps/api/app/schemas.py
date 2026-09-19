@@ -29,6 +29,9 @@ class OrganizationOut(BaseModel):
     fiscal_year_start_month: int
     low_value_asset_threshold: Decimal
     short_term_threshold_months: int
+    discount_rate_mode: str = "PER_LEASE"
+    default_lease_discount_rate: Decimal = Decimal("0.10")
+    default_deposit_discount_rate: Decimal = Decimal("0.07")
 
 
 class ProfileOut(BaseModel):
@@ -61,6 +64,9 @@ class OrganizationUpdate(BaseModel):
     fiscal_year_start_month: Optional[int] = None
     low_value_asset_threshold: Optional[Decimal] = None
     short_term_threshold_months: Optional[int] = None
+    discount_rate_mode: Optional[str] = None
+    default_lease_discount_rate: Optional[Decimal] = None
+    default_deposit_discount_rate: Optional[Decimal] = None
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +293,8 @@ class MaturityBucketOut(BaseModel):
 class DisclosureSummary(BaseModel):
     total_rou_asset_nbv: Decimal
     total_lease_liability: Decimal
+    current_lease_liability: Decimal = Decimal("0")
+    non_current_lease_liability: Decimal = Decimal("0")
     weighted_average_discount_rate: Decimal
     maturity_analysis: list[MaturityBucketOut]
     total_cash_outflow_ytd: Decimal

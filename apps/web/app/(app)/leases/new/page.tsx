@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { api, ApiError } from "@/lib/api";
-import type { Lease, LeaseExtractionResponse, Lessor } from "@/lib/types";
+import type { Lease, LeaseExtractionResponse, Lessor, Organization } from "@/lib/types";
 
 const initialForm = {
   lessor_id: "",
@@ -56,10 +56,19 @@ export default function NewLeasePage() {
   const [extractError, setExtractError] = useState<string | null>(null);
   const [extractWarnings, setExtractWarnings] = useState<string[]>([]);
   const [unmatchedLessorName, setUnmatchedLessorName] = useState<string | null>(null);
+  const [org, setOrg] = useState<Organization | null>(null);
 
   useEffect(() => {
     api.get<Lessor[]>("/lessors").then(setLessors);
+    api.get<Organization>("/organizations/me").then((o) => {
+      setOrg(o);
+      // Apply the discount-rate policy: prefill the lease rate from the org
+      // default (and lock it when the policy is a single uniform rate).
+      setForm((f) => ({ ...f, discount_rate_annual: o.default_lease_discount_rate }));
+    });
   }, []);
+
+  const uniformRate = org?.discount_rate_mode === "UNIFORM";
 
   function set<K extends keyof typeof initialForm>(key: K, value: (typeof initialForm)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -276,7 +285,12 @@ export default function NewLeasePage() {
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <Label htmlFor="discount_rate_annual">Incremental borrowing rate (annual, decimal)</Label>
-              <Input id="discount_rate_annual" type="number" step="0.00001" required value={form.discount_rate_annual} onChange={(e) => set("discount_rate_annual", e.target.value)} placeholder="0.10 = 10%" />
+              <Input id="discount_rate_annual" type="number" step="0.00001" required value={form.discount_rate_annual} onChange={(e) => set("discount_rate_annual", e.target.value)} placeholder="0.10 = 10%" disabled={uniformRate} />
+              {uniformRate && (
+                <p className="mt-1 text-xs text-slate-400">
+                  Set by the Discount Rate Engine (uniform rate for all leases).
+                </p>
+              )}
             </div>
             <div>
               <Label htmlFor="currency">Currency</Label>

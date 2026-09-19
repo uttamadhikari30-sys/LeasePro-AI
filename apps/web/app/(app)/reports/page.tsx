@@ -114,7 +114,13 @@ export default function ReportsPage() {
             </Card>
             <Card>
               <CardHeader><CardTitle>Total lease liability</CardTitle></CardHeader>
-              <CardContent><p className="text-xl font-semibold">{formatCurrency(disclosures.total_lease_liability)}</p></CardContent>
+              <CardContent>
+                <p className="text-xl font-semibold">{formatCurrency(disclosures.total_lease_liability)}</p>
+                <div className="mt-2 space-y-0.5 text-xs text-slate-500">
+                  <div className="flex justify-between"><span>Current (≤ 12 months)</span><span className="font-medium text-slate-700">{formatCurrency(disclosures.current_lease_liability)}</span></div>
+                  <div className="flex justify-between"><span>Non-current (&gt; 12 months)</span><span className="font-medium text-slate-700">{formatCurrency(disclosures.non_current_lease_liability)}</span></div>
+                </div>
+              </CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle>Total cash outflow (YTD)</CardTitle></CardHeader>

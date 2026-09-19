@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, FileText, Building2, BarChart3, LogOut, Users, Wallet, Landmark, History } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, BarChart3, LogOut, Users, Wallet, Landmark, History, Percent } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useOrganization, useProfile } from "@/lib/profile-context";
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
 const ADMIN_NAV_ITEMS = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/company", label: "Company Master", icon: Landmark },
+  { href: "/admin/discount-rate", label: "Discount Rate Engine", icon: Percent },
   { href: "/admin/audit", label: "Audit Trail", icon: History },
 ];
 

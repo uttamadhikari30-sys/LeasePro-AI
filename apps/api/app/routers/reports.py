@@ -107,8 +107,10 @@ def disclosures(
     all_payments: list[PaymentLine] = []
     wadr_inputs: list[tuple[Decimal, Decimal]] = []
     total_liability = Decimal("0")
+    current_liability = Decimal("0")
     total_rou = Decimal("0")
     period_cash_outflows: list[Decimal] = []
+    one_year_out = date(as_of_date.year + 1, as_of_date.month, min(as_of_date.day, 28))
 
     for lease in leases:
         payments = db.table("lease_payment_schedule").select("*").eq("lease_id", lease["id"]).execute().data
@@ -134,6 +136,20 @@ def disclosures(
             balance = Decimal(str(latest_liability[0]["closing_liability"]))
             total_liability += balance
             wadr_inputs.append((balance, Decimal(str(lease["discount_rate_annual"]))))
+            # Current portion = principal (payment - interest) repaid over the next 12 months.
+            next_year_rows = (
+                db.table("lease_liability_schedule")
+                .select("payment, interest_expense, period_end")
+                .eq("lease_id", lease["id"])
+                .gt("period_end", as_of_date.isoformat())
+                .lte("period_end", one_year_out.isoformat())
+                .execute()
+                .data
+            )
+            current_liability += sum(
+                (Decimal(str(r["payment"])) - Decimal(str(r["interest_expense"])) for r in next_year_rows),
+                Decimal("0"),
+            )
 
         latest_rou = (
             db.table("rou_asset_schedule")
@@ -158,9 +174,13 @@ def disclosures(
         )
         period_cash_outflows.extend(Decimal(str(r["payment"])) for r in ytd_rows)
 
+    # Cap the current portion at the total (guards rounding on the last period).
+    current_liability = min(current_liability, total_liability)
     return DisclosureSummary(
         total_rou_asset_nbv=total_rou,
         total_lease_liability=total_liability,
+        current_lease_liability=current_liability,
+        non_current_lease_liability=total_liability - current_liability,
         weighted_average_discount_rate=weighted_average_discount_rate(wadr_inputs),
         maturity_analysis=[
             MaturityBucketOut(**bucket.__dict__) for bucket in maturity_analysis(all_payments, as_of_date)
