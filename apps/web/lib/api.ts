@@ -2,7 +2,21 @@
 
 import { createClient } from "@/lib/supabase/client";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Prefer the build-time env var when it is inlined. Under Turbopack it isn't
+// always statically replaced, so fall back by host: any non-localhost browser
+// (production or a Vercel preview) talks to the deployed API, and only local
+// dev uses localhost. This keeps production working even if the env var is
+// missing from a build.
+function resolveApiUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_API_URL;
+  if (fromEnv) return fromEnv;
+  if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
+    return "https://leasepro-ai-api.vercel.app";
+  }
+  return "http://localhost:8000";
+}
+
+const API_URL = resolveApiUrl();
 
 class ApiError extends Error {
   status: number;
