@@ -98,21 +98,40 @@ def debug_conn():
             results[name] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
     import socket
+    import time
 
-    def dns_probe(host):
-        infos = socket.getaddrinfo(host, 443)
+    host = httpx.URL(url).host
+
+    def gethostbyname_probe():
+        return type("R", (), {"status_code": socket.gethostbyname(host)})
+
+    def getaddrinfo_ipv4():
+        infos = socket.getaddrinfo(host, 443, socket.AF_INET)
         return type("R", (), {"status_code": infos[0][4][0]})
 
-    probe("dns_supabase", lambda: dns_probe(httpx.URL(url).host))
-    probe("dns_example_com", lambda: dns_probe("example.com"))
-    probe("httpx_supabase", lambda: httpx.get(url, headers=headers, timeout=10))
-    probe("httpx_example_com", lambda: httpx.get("https://example.com", timeout=10))
+    def getaddrinfo_retry():
+        last = None
+        for _ in range(8):
+            try:
+                infos = socket.getaddrinfo(host, 443, socket.AF_INET)
+                return type("R", (), {"status_code": infos[0][4][0]})
+            except OSError as e:
+                last = e
+                time.sleep(0.15)
+        raise last
 
-    def supabase_probe():
-        from supabase import create_client
+    def doh_probe():
+        r = httpx.get(
+            "https://cloudflare-dns.com/dns-query",
+            params={"name": host, "type": "A"},
+            headers={"accept": "application/dns-json"},
+            timeout=10,
+        )
+        answers = [a["data"] for a in r.json().get("Answer", []) if a.get("type") == 1]
+        return type("R", (), {"status_code": ",".join(answers) or "no-A-record"})
 
-        c = create_client(settings.supabase_url, settings.supabase_anon_key)
-        return type("R", (), {"status_code": len(c.table("organizations").select("id").limit(1).execute().data)})
-
-    probe("supabase_sdk", supabase_probe)
+    probe("gethostbyname", gethostbyname_probe)
+    probe("getaddrinfo_ipv4", getaddrinfo_ipv4)
+    probe("getaddrinfo_retry", getaddrinfo_retry)
+    probe("doh_cloudflare", doh_probe)
     return results
