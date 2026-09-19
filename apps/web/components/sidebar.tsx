@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, FileText, Building2, BarChart3, LogOut, Users } from "lucide-react";
+import { LayoutDashboard, FileText, Building2, BarChart3, LogOut, Users, Wallet, Landmark, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useOrganization, useProfile } from "@/lib/profile-context";
@@ -11,10 +11,15 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leases", label: "Lease Repository", icon: FileText },
   { href: "/lessors", label: "Lessor Master", icon: Building2 },
+  { href: "/deposits", label: "Security Deposits", icon: Wallet },
   { href: "/reports", label: "Reports & Disclosures", icon: BarChart3 },
 ];
 
-const ADMIN_NAV_ITEMS = [{ href: "/admin/users", label: "Users", icon: Users }];
+const ADMIN_NAV_ITEMS = [
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/company", label: "Company Master", icon: Landmark },
+  { href: "/admin/audit", label: "Audit Trail", icon: History },
+];
 
 export function Sidebar() {
   const pathname = usePathname();

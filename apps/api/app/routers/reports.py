@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import Response
 from supabase import Client
 
 from ..deps import get_user_scoped_db
@@ -277,6 +278,28 @@ def disclosure_note(
         "as_of_date": as_of_date.isoformat(),
         "note_markdown": note,
     }
+
+
+@router.get("/export.xlsx")
+def export_excel(db: Client = Depends(get_user_scoped_db)):
+    """Edme-branded Excel workbook of all lease registers and disclosures."""
+    from ..services.excel_service import build_reports_workbook
+
+    org = db.table("organizations").select("name").single().execute().data
+    data = {
+        "lease_register": lease_register(db),
+        "rou_register": rou_register(db),
+        "liability_rollforward": liability_rollforward(db),
+        "deposit_register": security_deposit_register(db),
+        "disclosures": disclosures(db=db).model_dump(mode="json"),
+    }
+    content = build_reports_workbook(org["name"], data)
+    filename = f"LeasePro_Reports_{date.today().isoformat()}.xlsx"
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/audit-trail")

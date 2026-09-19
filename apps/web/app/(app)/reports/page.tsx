@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import type { DisclosureSummary } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-type Tab = "disclosures" | "note" | "rou-register" | "liability-rollforward" | "security-deposits" | "audit-trail";
+type Tab = "disclosures" | "note" | "rou-register" | "liability-rollforward" | "security-deposits";
 
 interface DisclosureNote {
   standard: string;
@@ -24,21 +24,12 @@ interface RegisterEntry {
   deposits?: Record<string, unknown>[];
 }
 
-interface AuditLogRow {
-  id: string;
-  action: string;
-  entity_type: string;
-  entity_id: string | null;
-  created_at: string;
-}
-
 export default function ReportsPage() {
   const [tab, setTab] = useState<Tab>("disclosures");
   const [disclosures, setDisclosures] = useState<DisclosureSummary | null>(null);
   const [rouRegister, setRouRegister] = useState<RegisterEntry[]>([]);
   const [liabilityRollforward, setLiabilityRollforward] = useState<RegisterEntry[]>([]);
   const [depositRegister, setDepositRegister] = useState<RegisterEntry[]>([]);
-  const [auditTrail, setAuditTrail] = useState<AuditLogRow[]>([]);
   const [note, setNote] = useState<DisclosureNote | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -47,7 +38,6 @@ export default function ReportsPage() {
     api.get<RegisterEntry[]>("/reports/rou-register").then(setRouRegister);
     api.get<RegisterEntry[]>("/reports/liability-rollforward").then(setLiabilityRollforward);
     api.get<RegisterEntry[]>("/reports/security-deposit-register").then(setDepositRegister);
-    api.get<AuditLogRow[]>("/reports/audit-trail").then(setAuditTrail);
     api.get<DisclosureNote>("/reports/disclosure-note").then(setNote);
   }, []);
 
@@ -61,9 +51,17 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Reports & Disclosures</h1>
-        <p className="text-sm text-slate-500">Ind AS 116 / IFRS 16 disclosure notes and registers.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Reports & Disclosures</h1>
+          <p className="text-sm text-slate-500">Ind AS 116 / IFRS 16 disclosure notes and registers.</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => api.download("/reports/export.xlsx", "LeasePro_Reports.xlsx")}
+        >
+          Export to Excel
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-1 border-b border-slate-200">
@@ -73,7 +71,6 @@ export default function ReportsPage() {
           ["rou-register", "ROU Register"],
           ["liability-rollforward", "Liability Rollforward"],
           ["security-deposits", "Security Deposits"],
-          ["audit-trail", "Audit Trail"],
         ] as [Tab, string][]).map(([value, label]) => (
           <button
             key={value}
@@ -195,30 +192,6 @@ export default function ReportsPage() {
         </Card>
       )}
 
-      {tab === "audit-trail" && (
-        <Card>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead className="border-b border-slate-100 text-left text-xs uppercase text-slate-400">
-                <tr>
-                  <th className="px-5 py-2 font-medium">When</th>
-                  <th className="px-5 py-2 font-medium">Action</th>
-                  <th className="px-5 py-2 font-medium">Entity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditTrail.map((row) => (
-                  <tr key={row.id} className="border-b border-slate-50 last:border-0">
-                    <td className="px-5 py-2">{new Date(row.created_at).toLocaleString("en-IN")}</td>
-                    <td className="px-5 py-2">{row.action}</td>
-                    <td className="px-5 py-2">{row.entity_type}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
