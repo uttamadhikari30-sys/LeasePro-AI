@@ -3,6 +3,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import Response
 from supabase import Client
 
 from ..auth import CurrentUser, get_current_user
@@ -36,6 +37,42 @@ _MAX_DOC_BYTES = 25 * 1024 * 1024
 
 def _safe_filename(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]", "_", name or "agreement")[:120]
+
+
+@router.get("/import-template.xlsx")
+def import_template():
+    """Download the Edme-branded bulk-lease-import Excel template."""
+    from ..services.excel_service import build_import_template
+
+    return Response(
+        content=build_import_template(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="LeasePro_Import_Template.xlsx"'},
+    )
+
+
+@router.post("/import")
+async def import_leases(
+    file: UploadFile = File(...),
+    user: CurrentUser = Depends(get_current_user),
+    db: Client = Depends(get_user_scoped_db),
+):
+    """Bulk-create leases (with opening balances and deposits) from a filled
+    import workbook. Each lease is calculated on creation."""
+    from ..services.import_service import import_leases as _import
+
+    if not (file.filename or "").lower().endswith((".xlsx", ".xlsm")):
+        raise HTTPException(400, "Upload the filled Excel (.xlsx) import template.")
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(413, "File too large (max 10 MB).")
+
+    profile = db.table("profiles").select("org_id").eq("id", user.user_id).single().execute().data
+    if not profile:
+        raise HTTPException(400, "No organization for current user")
+    result = _import(db, profile["org_id"], user.user_id, contents)
+    audit_service.log_action(db, user.user_id, "IMPORT_LEASES", "lease", None, after={"created": result["created"], "errors": len(result["errors"])})
+    return result
 
 
 @router.post("/{lease_id}/document")

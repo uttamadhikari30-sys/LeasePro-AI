@@ -132,3 +132,106 @@ def build_reports_workbook(entity_name: str, data: dict) -> bytes:
     buf = BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# Bulk lease import template + parsing.
+# ---------------------------------------------------------------------------
+IMPORT_COLUMNS = [
+    ("lease_code", "LSE-2026-001"),
+    ("lessor_name", "ABC Properties Pvt Ltd"),
+    ("asset_name", "Head Office - 5th Floor"),
+    ("asset_category", "Property"),
+    ("location", "Mumbai"),
+    ("commencement_date", "2026-04-01"),
+    ("lease_term_months", 36),
+    ("non_cancellable_period_months", 36),
+    ("payment_frequency", "MONTHLY"),
+    ("payment_timing", "ARREARS"),
+    ("base_payment_amount", 100000),
+    ("escalation_type", "NONE"),
+    ("escalation_percent", 0),
+    ("escalation_frequency_months", 12),
+    ("discount_rate_annual", 0.10),
+    ("currency", "INR"),
+    ("is_short_term", "No"),
+    ("is_low_value", "No"),
+    ("is_transition", "No"),
+    ("opening_date", ""),
+    ("opening_liability", ""),
+    ("opening_rou_nbv", ""),
+    ("security_deposit_amount", ""),
+    ("deposit_paid_date", ""),
+    ("deposit_refund_date", ""),
+    ("deposit_discount_rate", ""),
+]
+
+
+def build_import_template() -> bytes:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Leases"
+    r = _brand_header(ws, "Bulk Lease Import", "Fill one lease per row, then upload", len(IMPORT_COLUMNS))
+    headers = [c[0] for c in IMPORT_COLUMNS]
+    example = [c[1] for c in IMPORT_COLUMNS]
+    _table(ws, r, headers, [example])
+
+    info = wb.create_sheet("Instructions")
+    tips = [
+        "Fill one lease per row on the 'Leases' sheet. Overwrite the example row with your first lease.",
+        "Dates must be YYYY-MM-DD (e.g. 2026-04-01).",
+        "Rates are decimals: 0.10 means 10%.",
+        "Flags (is_short_term, is_low_value, is_transition) accept Yes/No.",
+        "payment_frequency: MONTHLY, QUARTERLY, HALF_YEARLY or ANNUALLY.",
+        "payment_timing: ARREARS (end of period) or ADVANCE (start of period).",
+        "escalation_type: NONE or FIXED_PERCENT.",
+        "lessor_name is matched to an existing lessor, or created automatically if new.",
+        "Opening-balance columns (opening_date/liability/rou_nbv) apply only when is_transition = Yes.",
+        "Security-deposit columns are optional; leave blank if the lease has no deposit.",
+        "Each imported lease is calculated automatically, so schedules and journals are ready immediately.",
+    ]
+    info["A1"] = "How to use this template"
+    info["A1"].font = Font(bold=True, size=13, color=EDME_BLUE)
+    for i, t in enumerate(tips, start=3):
+        info.cell(row=i, column=1, value=f"•  {t}").font = Font(size=10)
+    info.column_dimensions["A"].width = 100
+
+    buf = BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def parse_import_workbook(file_bytes: bytes) -> list[dict]:
+    """Parse the bulk-import workbook into a list of row dicts keyed by column
+    name. Skips the branded header rows and the example row is treated as data
+    only if the user kept it (caller validates)."""
+    from openpyxl import load_workbook
+
+    wb = load_workbook(BytesIO(file_bytes), data_only=True)
+    ws = wb.active
+    headers = [c[0] for c in IMPORT_COLUMNS]
+    # Find the header row (the one containing 'lease_code').
+    header_row = None
+    for row in ws.iter_rows(min_row=1, max_row=15):
+        values = [str(c.value).strip() if c.value is not None else "" for c in row]
+        if "lease_code" in values:
+            header_row = row[0].row
+            col_map = {v: i for i, v in enumerate(values) if v}
+            break
+    if header_row is None:
+        return []
+
+    rows: list[dict] = []
+    for row in ws.iter_rows(min_row=header_row + 1):
+        record = {}
+        empty = True
+        for h in headers:
+            idx = col_map.get(h)
+            val = row[idx].value if idx is not None and idx < len(row) else None
+            if val not in (None, ""):
+                empty = False
+            record[h] = val
+        if not empty:
+            record["_row"] = row[0].row
+            rows.append(record)
+    return rows

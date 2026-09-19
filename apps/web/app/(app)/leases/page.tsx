@@ -24,9 +24,14 @@ export default function LeasesPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Lease Repository</h1>
           <p className="text-sm text-slate-500">Every lease under management, with its current ROU and liability balance.</p>
         </div>
-        <Link href="/leases/new">
-          <Button>New lease</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/leases/import">
+            <Button variant="outline">Import from Excel</Button>
+          </Link>
+          <Link href="/leases/new">
+            <Button>New lease</Button>
+          </Link>
+        </div>
       </div>
 
       <Card>
