@@ -26,6 +26,8 @@ export default function LeaseDetailPage() {
   const [journals, setJournals] = useState<JournalEntry[]>([]);
   const [tab, setTab] = useState<Tab>("overview");
   const [calculating, setCalculating] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generateMsg, setGenerateMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function loadAll() {
@@ -47,6 +49,21 @@ export default function LeaseDetailPage() {
       setError(err instanceof ApiError ? err.message : "Calculation failed");
     } finally {
       setCalculating(false);
+    }
+  }
+
+  async function handleGenerateJournals() {
+    setGenerating(true);
+    setGenerateMsg(null);
+    setError(null);
+    try {
+      const res = await api.post<{ total_entries: number }>(`/leases/${id}/journals/generate-all`);
+      setGenerateMsg(`Generated ${res.total_entries} journal entries.`);
+      loadAll();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to generate journal entries");
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -150,7 +167,20 @@ export default function LeaseDetailPage() {
 
       {tab === "journals" && (
         <div className="space-y-4">
-          {journals.length === 0 && <p className="text-slate-400">No journal entries yet. Calculate the lease to book initial recognition.</p>}
+          <div className="flex items-center justify-between rounded-lg border border-edme-blue/20 bg-edme-blue/5 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-slate-800">Monthly auto accounting entries</p>
+              <p className="text-xs text-slate-500">
+                Books initial recognition, every period&apos;s interest, payment &amp; ROU depreciation, plus security-deposit
+                unwinding — regenerated from the computed schedules.
+              </p>
+              {generateMsg && <p className="mt-1 text-xs font-medium text-green-700">{generateMsg}</p>}
+            </div>
+            <Button onClick={handleGenerateJournals} disabled={generating || !liabilitySchedule.length}>
+              {generating ? "Generating…" : "Generate all entries"}
+            </Button>
+          </div>
+          {journals.length === 0 && <p className="text-slate-400">No journal entries yet. Calculate the lease, then generate the monthly entries above.</p>}
           {journals.map((j) => (
             <Card key={j.id}>
               <CardHeader className="flex flex-row items-center justify-between">

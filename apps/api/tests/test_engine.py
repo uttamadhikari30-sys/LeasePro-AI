@@ -217,3 +217,39 @@ def test_invalid_term_not_whole_number_of_periods_raises():
             timing=PaymentTiming.ARREARS,
             base_payment_amount=Decimal("1000"),
         )
+
+
+def test_build_disclosure_note_renders_key_figures():
+    from datetime import date
+    from decimal import Decimal
+    from app.engine.disclosures import build_disclosure_note, maturity_analysis
+    from app.engine.models import PaymentLine
+
+    maturity = maturity_analysis(
+        [PaymentLine(period_number=1, due_date=date(2027, 6, 30), amount=Decimal("120000"))],
+        date(2026, 3, 31),
+    )
+    note = build_disclosure_note(
+        standard="IND_AS_116",
+        entity_name="Edme Insurance Brokers Limited",
+        as_of_date=date(2026, 3, 31),
+        currency="INR",
+        total_rou_nbv=Decimal("1000000"),
+        rou_by_category={"Property": Decimal("1000000")},
+        total_liability=Decimal("950000"),
+        current_liability=Decimal("200000"),
+        non_current_liability=Decimal("750000"),
+        depreciation_ytd=Decimal("100000"),
+        interest_ytd=Decimal("80000"),
+        short_term_expense_ytd=Decimal("0"),
+        low_value_expense_ytd=Decimal("0"),
+        total_cash_outflow_ytd=Decimal("150000"),
+        additions_ytd=Decimal("1100000"),
+        wadr=Decimal("0.10"),
+        maturity=maturity,
+    )
+    assert "Ind AS 116" in note
+    assert "Edme Insurance Brokers Limited" in note
+    assert "Property" in note
+    assert "10.00%" in note  # WADR formatted
+    assert "Maturity analysis" in note

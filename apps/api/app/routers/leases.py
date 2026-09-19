@@ -154,6 +154,76 @@ def generate_period_journals(
     return [JournalEntryOut(**e, lines=lines_by_entry[e["id"]]) for e in entries]
 
 
+@router.post("/{lease_id}/journals/generate-all")
+def generate_all_journals(
+    lease_id: UUID,
+    user: CurrentUser = Depends(get_current_user),
+    db: Client = Depends(get_user_scoped_db),
+):
+    """Regenerate the full set of derived monthly journals for a lease from its
+    computed schedules: initial recognition, then every period's interest +
+    payment and ROU depreciation, plus each security deposit's recognition and
+    monthly unwinding. Idempotent -- clears prior derived entries first."""
+    lease = db.table("leases").select("*").eq("id", str(lease_id)).single().execute().data
+    if not lease:
+        raise HTTPException(404, "Lease not found")
+
+    liability_rows = (
+        db.table("lease_liability_schedule").select("*").eq("lease_id", str(lease_id)).order("period_number").execute().data
+    )
+    rou_rows = (
+        db.table("rou_asset_schedule").select("*").eq("lease_id", str(lease_id)).order("period_number").execute().data
+    )
+    if not liability_rows or not rou_rows:
+        raise HTTPException(400, "Lease has not been calculated yet; run /calculate first")
+
+    from datetime import date as _date
+
+    journal_service.delete_derived_journals(db, lease_id)
+    org_id = lease["org_id"]
+
+    counts = {"initial_recognition": 0, "period_entries": 0, "deposit_entries": 0}
+
+    journal_service.create_initial_recognition_journal(
+        db, lease_id, _date.fromisoformat(lease["commencement_date"]),
+        Decimal(str(rou_rows[0]["opening_nbv"])),
+        Decimal(str(liability_rows[0]["opening_liability"])),
+        Decimal(str(lease["initial_direct_costs"])),
+        Decimal(str(lease["prepaid_rent"])),
+        Decimal(str(lease["lease_incentives"])),
+        Decimal(str(lease["restoration_cost_estimate"])),
+        user.user_id,
+    )
+    counts["initial_recognition"] = 1
+
+    rou_by_period = {r["period_number"]: r for r in rou_rows}
+    for liab in liability_rows:
+        rou = rou_by_period.get(liab["period_number"])
+        if rou:
+            journal_service.create_period_journals(db, lease_id, liab, rou, user.user_id)
+            counts["period_entries"] += 2
+
+    deposits = db.table("security_deposits").select("*").eq("lease_id", str(lease_id)).execute().data
+    for dep in deposits:
+        journal_service.create_security_deposit_initial_journal(
+            db, lease_id, _date.fromisoformat(dep["paid_date"]),
+            Decimal(str(dep["deposit_amount"])), Decimal(str(dep["present_value"])),
+            Decimal(str(dep["prepaid_rent_component"])), user.user_id, org_id=org_id,
+        )
+        counts["deposit_entries"] += 1
+        sched = (
+            db.table("security_deposit_schedule").select("*").eq("security_deposit_id", dep["id"]).order("period_number").execute().data
+        )
+        entries = journal_service.create_security_deposit_period_journals(
+            db, lease_id, sched, Decimal(str(dep["prepaid_rent_component"])), user.user_id, org_id=org_id,
+        )
+        counts["deposit_entries"] += len(entries)
+
+    audit_service.log_action(db, user.user_id, "GENERATE_JOURNALS", "lease", lease_id, after=counts)
+    total = counts["initial_recognition"] + counts["period_entries"] + counts["deposit_entries"]
+    return {"total_entries": total, **counts}
+
+
 @router.get("/{lease_id}/journals", response_model=list[JournalEntryOut])
 def list_journals(lease_id: UUID, db: Client = Depends(get_user_scoped_db)):
     entries = (

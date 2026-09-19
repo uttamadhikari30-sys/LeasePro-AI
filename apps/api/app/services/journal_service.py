@@ -5,6 +5,13 @@ from uuid import UUID
 from supabase import Client
 
 
+def _lease_org_id(db: Client, lease_id: UUID) -> str:
+    """journal_entries.org_id is NOT NULL and RLS-checked, so every entry must
+    carry the owning organization. Derive it from the lease."""
+    row = db.table("leases").select("org_id").eq("id", str(lease_id)).single().execute().data
+    return row["org_id"]
+
+
 def _insert_entry(
     db: Client,
     lease_id: UUID,
@@ -13,11 +20,13 @@ def _insert_entry(
     narration: str,
     user_id: str,
     lines: list[dict],
+    org_id: str | None = None,
 ) -> dict:
     entry = (
         db.table("journal_entries")
         .insert(
             {
+                "org_id": org_id or _lease_org_id(db, lease_id),
                 "lease_id": str(lease_id),
                 "entry_date": entry_date.isoformat(),
                 "entry_type": entry_type,
@@ -193,3 +202,99 @@ def create_remeasurement_journal(
     return _insert_entry(
         db, lease_id, modification_date, "REMEASUREMENT", "Lease remeasurement / modification", user_id, lines
     )
+
+
+# ---------------------------------------------------------------------------
+# Security deposit journals (Ind AS 109 / IFRS 9 recognition of a refundable
+# interest-free deposit at present value, day-1 discount as prepaid rent).
+# ---------------------------------------------------------------------------
+def create_security_deposit_initial_journal(
+    db: Client,
+    lease_id: UUID,
+    paid_date: date,
+    deposit_amount: Decimal,
+    present_value: Decimal,
+    prepaid_rent_component: Decimal,
+    user_id: str,
+    org_id: str | None = None,
+) -> dict:
+    """Dr Security Deposit (financial asset @ PV) + Dr Prepaid Rent (day-1
+    discount) / Cr Cash (full refundable amount paid)."""
+    lines = [
+        {"account_code": "SEC-DEPOSIT", "account_name": "Security Deposit (Financial Asset)",
+         "debit": str(present_value), "credit": "0"},
+    ]
+    if prepaid_rent_component != 0:
+        lines.append({"account_code": "PREPAID-RENT", "account_name": "Prepaid Rent",
+                      "debit": str(prepaid_rent_component), "credit": "0"})
+    lines.append({"account_code": "CASH-BANK", "account_name": "Cash / Bank",
+                  "debit": "0", "credit": str(deposit_amount)})
+    return _insert_entry(
+        db, lease_id, paid_date, "SECURITY_DEPOSIT",
+        "Security deposit paid - recognised at present value", user_id, lines, org_id=org_id,
+    )
+
+
+def create_security_deposit_period_journals(
+    db: Client,
+    lease_id: UUID,
+    schedule_rows: list[dict],
+    prepaid_rent_component: Decimal,
+    user_id: str,
+    org_id: str | None = None,
+) -> list[dict]:
+    """For each period of the deposit's life: unwind the discount as interest
+    income (Dr Security Deposit / Cr Interest Income) and amortise the day-1
+    prepaid-rent component straight-line (Dr Rent Expense / Cr Prepaid Rent)."""
+    org_id = org_id or _lease_org_id(db, lease_id)
+    n = len(schedule_rows)
+    entries: list[dict] = []
+    prepaid_per_period = (prepaid_rent_component / n).quantize(Decimal("0.01")) if n else Decimal("0")
+    amortised = Decimal("0")
+
+    for i, r in enumerate(schedule_rows, start=1):
+        period_date = date.fromisoformat(r["period_date"])
+        interest = Decimal(str(r["interest_income"]))
+        lines = [
+            {"account_code": "SEC-DEPOSIT", "account_name": "Security Deposit (Financial Asset)",
+             "debit": str(interest), "credit": "0"},
+            {"account_code": "INTEREST-INCOME", "account_name": "Interest Income on Security Deposit",
+             "debit": "0", "credit": str(interest)},
+        ]
+        # Straight-line prepaid rent amortisation; true up the final period.
+        this_prepaid = prepaid_rent_component - amortised if i == n else prepaid_per_period
+        amortised += this_prepaid
+        if this_prepaid != 0:
+            lines.append({"account_code": "RENT-EXP", "account_name": "Rent Expense (deposit discount)",
+                          "debit": str(this_prepaid), "credit": "0"})
+            lines.append({"account_code": "PREPAID-RENT", "account_name": "Prepaid Rent",
+                          "debit": "0", "credit": str(this_prepaid)})
+        entries.append(_insert_entry(
+            db, lease_id, period_date, "SECURITY_DEPOSIT",
+            f"Security deposit unwinding & prepaid rent amortisation - period {i}", user_id, lines, org_id=org_id,
+        ))
+    return entries
+
+
+# ---------------------------------------------------------------------------
+# Bulk regeneration of all system-derived journals for a lease.
+# ---------------------------------------------------------------------------
+_DERIVED_ENTRY_TYPES = ("INITIAL_RECOGNITION", "INTEREST_EXPENSE", "DEPRECIATION", "SECURITY_DEPOSIT")
+
+
+def delete_derived_journals(db: Client, lease_id: UUID) -> None:
+    """Remove previously auto-generated (derived) journals for a lease so the
+    full set can be regenerated idempotently. Manual entries and remeasurement
+    entries are left untouched."""
+    existing = (
+        db.table("journal_entries")
+        .select("id, entry_type")
+        .eq("lease_id", str(lease_id))
+        .in_("entry_type", list(_DERIVED_ENTRY_TYPES))
+        .execute()
+        .data
+    )
+    ids = [e["id"] for e in existing]
+    if ids:
+        db.table("journal_lines").delete().in_("journal_entry_id", ids).execute()
+        db.table("journal_entries").delete().in_("id", ids).execute()

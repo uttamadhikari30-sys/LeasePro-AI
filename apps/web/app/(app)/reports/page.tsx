@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import type { DisclosureSummary } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-type Tab = "disclosures" | "rou-register" | "liability-rollforward" | "security-deposits" | "audit-trail";
+type Tab = "disclosures" | "note" | "rou-register" | "liability-rollforward" | "security-deposits" | "audit-trail";
+
+interface DisclosureNote {
+  standard: string;
+  entity_name: string;
+  as_of_date: string;
+  note_markdown: string;
+}
 
 interface RegisterEntry {
   id: string;
@@ -31,6 +39,8 @@ export default function ReportsPage() {
   const [liabilityRollforward, setLiabilityRollforward] = useState<RegisterEntry[]>([]);
   const [depositRegister, setDepositRegister] = useState<RegisterEntry[]>([]);
   const [auditTrail, setAuditTrail] = useState<AuditLogRow[]>([]);
+  const [note, setNote] = useState<DisclosureNote | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     api.get<DisclosureSummary>("/reports/disclosures").then(setDisclosures);
@@ -38,7 +48,16 @@ export default function ReportsPage() {
     api.get<RegisterEntry[]>("/reports/liability-rollforward").then(setLiabilityRollforward);
     api.get<RegisterEntry[]>("/reports/security-deposit-register").then(setDepositRegister);
     api.get<AuditLogRow[]>("/reports/audit-trail").then(setAuditTrail);
+    api.get<DisclosureNote>("/reports/disclosure-note").then(setNote);
   }, []);
+
+  function copyNote() {
+    if (!note) return;
+    navigator.clipboard.writeText(note.note_markdown).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -50,6 +69,7 @@ export default function ReportsPage() {
       <div className="flex flex-wrap gap-1 border-b border-slate-200">
         {([
           ["disclosures", "Disclosures"],
+          ["note", "Ready-to-use Note"],
           ["rou-register", "ROU Register"],
           ["liability-rollforward", "Liability Rollforward"],
           ["security-deposits", "Security Deposits"],
@@ -66,6 +86,27 @@ export default function ReportsPage() {
           </button>
         ))}
       </div>
+
+      {tab === "note" && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-500">
+              Auto-drafted {note?.standard === "IFRS_16" ? "IFRS 16" : "Ind AS 116"} disclosure note, populated from your
+              lease computations. Review before use in financial statements.
+            </p>
+            <Button variant="outline" onClick={copyNote} disabled={!note}>
+              {copied ? "Copied!" : "Copy note"}
+            </Button>
+          </div>
+          <Card>
+            <CardContent className="prose prose-sm max-w-none overflow-x-auto py-5">
+              <pre className="whitespace-pre-wrap break-words font-sans text-[13px] leading-relaxed text-slate-800">
+                {note ? note.note_markdown : "Loading…"}
+              </pre>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {tab === "disclosures" && disclosures && (
         <div className="space-y-4">
