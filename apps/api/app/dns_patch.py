@@ -12,10 +12,7 @@ routes the request to the correct Supabase project.
 The patch only intervenes when the real resolver fails for the specific
 Supabase host, so local development (where system DNS works) is unaffected.
 """
-import json
 import socket
-import ssl
-import urllib.request
 from functools import lru_cache
 from urllib.parse import urlparse
 
@@ -31,18 +28,19 @@ def _supabase_host() -> str:
 
 @lru_cache(maxsize=16)
 def _resolve_via_doh(host: str) -> tuple[str, ...]:
-    """Resolve A records for `host` via DNS-over-HTTPS. The DoH providers
-    themselves resolve fine through the system resolver on Vercel."""
-    ctx = ssl.create_default_context()
+    """Resolve A records for `host` via DNS-over-HTTPS. Uses httpx (bundled
+    certifi CA -- urllib's system-CA verification fails on Vercel). The DoH
+    provider hostnames themselves resolve fine through the system resolver."""
+    import httpx
+
     providers = (
         f"https://dns.google/resolve?name={host}&type=A",
         f"https://cloudflare-dns.com/dns-query?name={host}&type=A",
     )
     for url in providers:
         try:
-            req = urllib.request.Request(url, headers={"accept": "application/dns-json"})
-            with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:
-                data = json.loads(resp.read())
+            r = httpx.get(url, headers={"accept": "application/dns-json"}, timeout=8)
+            data = r.json()
             ips = tuple(a["data"] for a in data.get("Answer", []) if a.get("type") == 1)
             if ips:
                 return ips

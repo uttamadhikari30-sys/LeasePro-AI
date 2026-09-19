@@ -102,6 +102,11 @@ def debug_conn():
         except Exception as exc:  # noqa: BLE001
             results[name] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
+    from . import dns_patch
+
+    results["patch_installed"] = dns_patch._installed
+    results["doh_resolve"] = list(dns_patch._resolve_via_doh(httpx.URL(url).host))
+
     # With the DNS-over-HTTPS patch installed, these should now succeed.
     probe("httpx_supabase", lambda: httpx.get(url, headers=headers, timeout=10))
 
