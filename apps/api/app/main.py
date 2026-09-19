@@ -5,8 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from postgrest.exceptions import APIError
 
+from . import dns_patch
 from .config import get_settings
 from .routers import ai, leases, lessors, organizations, reports, security_deposits
+
+# Vercel's serverless resolver can't resolve the Supabase host; patch DNS to
+# fall back to DNS-over-HTTPS before any Supabase client is created.
+dns_patch.install()
 
 settings = get_settings()
 
@@ -97,41 +102,15 @@ def debug_conn():
         except Exception as exc:  # noqa: BLE001
             results[name] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
-    import socket
-    import time
+    # With the DNS-over-HTTPS patch installed, these should now succeed.
+    probe("httpx_supabase", lambda: httpx.get(url, headers=headers, timeout=10))
 
-    host = httpx.URL(url).host
+    def supabase_probe():
+        from supabase import create_client
 
-    def gethostbyname_probe():
-        return type("R", (), {"status_code": socket.gethostbyname(host)})
+        c = create_client(settings.supabase_url, settings.supabase_anon_key)
+        n = len(c.table("organizations").select("id").limit(1).execute().data)
+        return type("R", (), {"status_code": f"ok ({n} rows)"})
 
-    def getaddrinfo_ipv4():
-        infos = socket.getaddrinfo(host, 443, socket.AF_INET)
-        return type("R", (), {"status_code": infos[0][4][0]})
-
-    def getaddrinfo_retry():
-        last = None
-        for _ in range(8):
-            try:
-                infos = socket.getaddrinfo(host, 443, socket.AF_INET)
-                return type("R", (), {"status_code": infos[0][4][0]})
-            except OSError as e:
-                last = e
-                time.sleep(0.15)
-        raise last
-
-    def doh_probe():
-        r = httpx.get(
-            "https://cloudflare-dns.com/dns-query",
-            params={"name": host, "type": "A"},
-            headers={"accept": "application/dns-json"},
-            timeout=10,
-        )
-        answers = [a["data"] for a in r.json().get("Answer", []) if a.get("type") == 1]
-        return type("R", (), {"status_code": ",".join(answers) or "no-A-record"})
-
-    probe("gethostbyname", gethostbyname_probe)
-    probe("getaddrinfo_ipv4", getaddrinfo_ipv4)
-    probe("getaddrinfo_retry", getaddrinfo_retry)
-    probe("doh_cloudflare", doh_probe)
+    probe("supabase_sdk", supabase_probe)
     return results
