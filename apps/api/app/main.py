@@ -97,9 +97,16 @@ def debug_conn():
         except Exception as exc:  # noqa: BLE001
             results[name] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
-    probe("httpx_default", lambda: httpx.get(url, headers=headers, timeout=10))
-    probe("httpx_trust_env_false", lambda: httpx.Client(trust_env=False, timeout=10).get(url, headers=headers))
-    probe("httpx_http1_no_env", lambda: httpx.Client(trust_env=False, http2=False, timeout=10).get(url, headers=headers))
+    import socket
+
+    def dns_probe(host):
+        infos = socket.getaddrinfo(host, 443)
+        return type("R", (), {"status_code": infos[0][4][0]})
+
+    probe("dns_supabase", lambda: dns_probe(httpx.URL(url).host))
+    probe("dns_example_com", lambda: dns_probe("example.com"))
+    probe("httpx_supabase", lambda: httpx.get(url, headers=headers, timeout=10))
+    probe("httpx_example_com", lambda: httpx.get("https://example.com", timeout=10))
 
     def supabase_probe():
         from supabase import create_client
