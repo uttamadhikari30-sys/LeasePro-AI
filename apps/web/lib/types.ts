@@ -132,6 +132,20 @@ export interface CalculateLeaseResponse {
   rou_schedule: RouScheduleRow[];
 }
 
+export interface ScenarioResult {
+  lease_liability: string;
+  rou_asset: string;
+  total_payments: string;
+  total_interest: string;
+}
+
+export interface SimulateResponse {
+  base: ScenarioResult;
+  scenario: ScenarioResult;
+  liability_delta: string;
+  rou_delta: string;
+}
+
 export interface JournalLine {
   account_code: string;
   account_name: string;

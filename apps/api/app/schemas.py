@@ -197,6 +197,27 @@ class CalculateLeaseResponse(BaseModel):
     rou_schedule: list[RouScheduleRowOut]
 
 
+class SimulateRequest(BaseModel):
+    revised_base_payment: Optional[Decimal] = None
+    revised_term_months: Optional[int] = None
+    revised_discount_rate_annual: Optional[Decimal] = None
+    revised_escalation_percent: Optional[Decimal] = None
+
+
+class ScenarioResult(BaseModel):
+    lease_liability: Decimal
+    rou_asset: Decimal
+    total_payments: Decimal
+    total_interest: Decimal
+
+
+class SimulateResponse(BaseModel):
+    base: ScenarioResult
+    scenario: ScenarioResult
+    liability_delta: Decimal
+    rou_delta: Decimal
+
+
 # ---------------------------------------------------------------------------
 # Modifications / remeasurement
 # ---------------------------------------------------------------------------

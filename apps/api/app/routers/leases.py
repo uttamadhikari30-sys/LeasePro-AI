@@ -19,6 +19,9 @@ from ..schemas import (
     ModificationOut,
     ModificationRequest,
     RouScheduleRowOut,
+    ScenarioResult,
+    SimulateRequest,
+    SimulateResponse,
 )
 from ..services import audit_service, journal_service, lease_service
 
@@ -188,6 +191,44 @@ def calculate_lease(
         rou_asset=result["rou_asset"],
         liability_schedule=[LiabilityScheduleRowOut(**row.__dict__) for row in result["liability_schedule"]],
         rou_schedule=[RouScheduleRowOut(**row.__dict__) for row in result["rou_schedule"]],
+    )
+
+
+@router.post("/{lease_id}/simulate", response_model=SimulateResponse)
+def simulate_lease(
+    lease_id: UUID,
+    payload: SimulateRequest,
+    db: Client = Depends(get_user_scoped_db),
+):
+    """What-if simulation: model a rent change, term change, discount-rate
+    change or escalation change and see the impact on lease liability and ROU
+    asset — without persisting anything or touching the books."""
+    lease = db.table("leases").select("*").eq("id", str(lease_id)).single().execute().data
+    if not lease:
+        raise HTTPException(404, "Lease not found")
+
+    base = lease_service.simulate_lease(lease)
+
+    scenario_lease = dict(lease)
+    if payload.revised_base_payment is not None:
+        scenario_lease["base_payment_amount"] = str(payload.revised_base_payment)
+    if payload.revised_term_months is not None:
+        scenario_lease["lease_term_months"] = payload.revised_term_months
+    if payload.revised_discount_rate_annual is not None:
+        scenario_lease["discount_rate_annual"] = str(payload.revised_discount_rate_annual)
+    if payload.revised_escalation_percent is not None:
+        scenario_lease["escalation_percent"] = str(payload.revised_escalation_percent)
+        if payload.revised_escalation_percent and lease["escalation_type"] == "NONE":
+            scenario_lease["escalation_type"] = "FIXED_PERCENT"
+    scenario = lease_service.simulate_lease(scenario_lease)
+
+    return SimulateResponse(
+        base=ScenarioResult(lease_liability=base["lease_liability"], rou_asset=base["rou_asset"],
+                            total_payments=base["total_payments"], total_interest=base["total_interest"]),
+        scenario=ScenarioResult(lease_liability=scenario["lease_liability"], rou_asset=scenario["rou_asset"],
+                                total_payments=scenario["total_payments"], total_interest=scenario["total_interest"]),
+        liability_delta=scenario["lease_liability"] - base["lease_liability"],
+        rou_delta=scenario["rou_asset"] - base["rou_asset"],
     )
 
 

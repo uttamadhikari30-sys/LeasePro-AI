@@ -12,11 +12,14 @@ import type {
   Lease,
   LiabilityScheduleRow,
   RouScheduleRow,
+  SimulateResponse,
 } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ModifyLeaseForm } from "@/components/modify-lease-form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-type Tab = "overview" | "liability" | "rou" | "journals" | "modify";
+type Tab = "overview" | "liability" | "rou" | "journals" | "whatif" | "modify";
 
 export default function LeaseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +33,9 @@ export default function LeaseDetailPage() {
   const [generateMsg, setGenerateMsg] = useState<string | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [whatif, setWhatif] = useState({ revised_base_payment: "", revised_term_months: "", revised_discount_rate_annual: "", revised_escalation_percent: "" });
+  const [simResult, setSimResult] = useState<SimulateResponse | null>(null);
+  const [simulating, setSimulating] = useState(false);
 
   function loadAll() {
     api.get<Lease>(`/leases/${id}`).then(setLease);
@@ -86,6 +92,24 @@ export default function LeaseDetailPage() {
     }
   }
 
+  async function handleSimulate() {
+    setSimulating(true);
+    setError(null);
+    try {
+      const body: Record<string, number> = {};
+      if (whatif.revised_base_payment) body.revised_base_payment = Number(whatif.revised_base_payment);
+      if (whatif.revised_term_months) body.revised_term_months = Number(whatif.revised_term_months);
+      if (whatif.revised_discount_rate_annual) body.revised_discount_rate_annual = Number(whatif.revised_discount_rate_annual);
+      if (whatif.revised_escalation_percent) body.revised_escalation_percent = Number(whatif.revised_escalation_percent);
+      const res = await api.post<SimulateResponse>(`/leases/${id}/simulate`, body);
+      setSimResult(res);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Simulation failed");
+    } finally {
+      setSimulating(false);
+    }
+  }
+
   async function handleViewAgreement() {
     try {
       const { url } = await api.get<{ url: string }>(`/leases/${id}/document`);
@@ -133,7 +157,7 @@ export default function LeaseDetailPage() {
       </div>
 
       <div className="flex gap-1 border-b border-slate-200">
-        {(["overview", "liability", "rou", "journals", "modify"] as Tab[]).map((t) => (
+        {(["overview", "liability", "rou", "journals", "whatif", "modify"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -141,7 +165,7 @@ export default function LeaseDetailPage() {
               tab === t ? "border-b-2 border-edme-blue text-edme-blue" : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            {t === "rou" ? "ROU Schedule" : t === "liability" ? "Liability Schedule" : t}
+            {t === "rou" ? "ROU Schedule" : t === "liability" ? "Liability Schedule" : t === "whatif" ? "What-If" : t}
           </button>
         ))}
       </div>
@@ -258,6 +282,76 @@ export default function LeaseDetailPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {tab === "whatif" && (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle>What-If simulator</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-500">
+                Model a scenario against the current lease terms. Nothing is saved — leave a field blank to keep the current value.
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <Label htmlFor="w_pay">Revised payment / period</Label>
+                  <Input id="w_pay" type="number" step="0.01" value={whatif.revised_base_payment} onChange={(e) => setWhatif({ ...whatif, revised_base_payment: e.target.value })} placeholder={lease.base_payment_amount} />
+                </div>
+                <div>
+                  <Label htmlFor="w_term">Revised term (months)</Label>
+                  <Input id="w_term" type="number" value={whatif.revised_term_months} onChange={(e) => setWhatif({ ...whatif, revised_term_months: e.target.value })} placeholder={String(lease.lease_term_months)} />
+                </div>
+                <div>
+                  <Label htmlFor="w_rate">Revised discount rate</Label>
+                  <Input id="w_rate" type="number" step="0.00001" value={whatif.revised_discount_rate_annual} onChange={(e) => setWhatif({ ...whatif, revised_discount_rate_annual: e.target.value })} placeholder={lease.discount_rate_annual} />
+                </div>
+                <div>
+                  <Label htmlFor="w_esc">Revised escalation %</Label>
+                  <Input id="w_esc" type="number" step="0.001" value={whatif.revised_escalation_percent} onChange={(e) => setWhatif({ ...whatif, revised_escalation_percent: e.target.value })} placeholder={lease.escalation_percent} />
+                </div>
+              </div>
+              <Button onClick={handleSimulate} disabled={simulating}>{simulating ? "Simulating…" : "Run simulation"}</Button>
+            </CardContent>
+          </Card>
+
+          {simResult && (
+            <Card>
+              <CardHeader><CardTitle>Impact</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-slate-100 text-left text-xs uppercase text-slate-400">
+                    <tr>
+                      <th className="px-5 py-2 font-medium">Measure</th>
+                      <th className="px-5 py-2 font-medium text-right">Current</th>
+                      <th className="px-5 py-2 font-medium text-right">Scenario</th>
+                      <th className="px-5 py-2 font-medium text-right">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ["Lease liability (initial)", simResult.base.lease_liability, simResult.scenario.lease_liability, simResult.liability_delta],
+                      ["ROU asset (initial)", simResult.base.rou_asset, simResult.scenario.rou_asset, simResult.rou_delta],
+                      ["Total payments", simResult.base.total_payments, simResult.scenario.total_payments, String(Number(simResult.scenario.total_payments) - Number(simResult.base.total_payments))],
+                      ["Total interest", simResult.base.total_interest, simResult.scenario.total_interest, String(Number(simResult.scenario.total_interest) - Number(simResult.base.total_interest))],
+                    ] as [string, string, string, string][]).map(([label, cur, scn, delta]) => {
+                      const d = Number(delta);
+                      return (
+                        <tr key={label} className="border-b border-slate-50 last:border-0">
+                          <td className="px-5 py-3 text-slate-700">{label}</td>
+                          <td className="px-5 py-3 text-right">{formatCurrency(cur, lease.currency)}</td>
+                          <td className="px-5 py-3 text-right font-medium">{formatCurrency(scn, lease.currency)}</td>
+                          <td className={`px-5 py-3 text-right font-medium ${d > 0 ? "text-edme-red" : d < 0 ? "text-emerald-600" : "text-slate-400"}`}>
+                            {d > 0 ? "+" : ""}{formatCurrency(delta, lease.currency)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 

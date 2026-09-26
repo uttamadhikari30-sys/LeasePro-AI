@@ -28,6 +28,57 @@ def _build_payments(lease: dict, overrides: dict[int, Decimal]) -> list[PaymentL
     return payments
 
 
+def simulate_lease(lease: dict) -> dict:
+    """Run the engine on a lease dict entirely in memory (no persistence, no
+    journals) and return the resulting liability, ROU and schedules. Used by
+    the What-If simulator to model scenarios without changing the books."""
+    frequency = PaymentFrequency(lease["payment_frequency"])
+    timing = PaymentTiming(lease["payment_timing"])
+    commencement_date = lease["commencement_date"]
+    if isinstance(commencement_date, str):
+        from datetime import date as _date
+        commencement_date = _date.fromisoformat(commencement_date)
+        lease = {**lease, "commencement_date": commencement_date}
+
+    payments = _build_payments(lease, {})
+    initial = compute_initial_recognition(
+        payments,
+        annual_discount_rate=Decimal(str(lease["discount_rate_annual"])),
+        frequency=frequency,
+        timing=timing,
+        initial_direct_costs=Decimal(str(lease.get("initial_direct_costs", 0))),
+        lease_incentives=Decimal(str(lease.get("lease_incentives", 0))),
+        restoration_cost_estimate=Decimal(str(lease.get("restoration_cost_estimate", 0))),
+        prepaid_rent=Decimal(str(lease.get("prepaid_rent", 0))),
+    )
+    liability_schedule = build_liability_schedule(
+        payments, commencement_date, frequency,
+        Decimal(str(lease["discount_rate_annual"])), timing,
+        opening_liability=initial.lease_liability,
+    )
+    lease_term_end = add_months(commencement_date, lease["lease_term_months"])
+    if lease.get("useful_life_months"):
+        depreciation_end = min(lease_term_end, add_months(commencement_date, lease["useful_life_months"]))
+    else:
+        depreciation_end = lease_term_end
+    rou_schedule = build_rou_schedule(
+        rou_asset_initial=initial.rou_asset,
+        commencement_date=commencement_date,
+        depreciation_end_date=depreciation_end,
+        period_months=1,
+    )
+    total_payments = sum((p.amount for p in payments), Decimal("0"))
+    total_interest = sum((r.interest_expense for r in liability_schedule), Decimal("0"))
+    return {
+        "lease_liability": initial.lease_liability,
+        "rou_asset": initial.rou_asset,
+        "total_payments": total_payments,
+        "total_interest": total_interest,
+        "liability_schedule": liability_schedule,
+        "rou_schedule": rou_schedule,
+    }
+
+
 def calculate_lease(db: Client, lease: dict, overrides: dict[int, Decimal], user_id: str) -> dict:
     """Runs the Ind AS 116/IFRS 16 engine for a lease and persists the
     resulting payment/liability/ROU schedules, replacing any prior
