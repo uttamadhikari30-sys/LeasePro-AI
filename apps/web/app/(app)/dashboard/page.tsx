@@ -6,14 +6,20 @@ import { Building2, TrendingDown, Percent, FileCheck2, ArrowRight, Wallet } from
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { useOrganization } from "@/lib/profile-context";
+import { useOrganization, useProfile } from "@/lib/profile-context";
 import type { DisclosureSummary, LeaseRegisterRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 
 const CATEGORY_COLORS = ["#1c3687", "#ed1b2f", "#3b5bb5", "#f2724f", "#6b7fc7", "#9aa8d6"];
 
+function greeting() {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+}
+
 export default function DashboardPage() {
   const org = useOrganization();
+  const profile = useProfile();
   const [summary, setSummary] = useState<DisclosureSummary | null>(null);
   const [leases, setLeases] = useState<LeaseRegisterRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +37,14 @@ export default function DashboardPage() {
   }, []);
 
   const activeCount = leases.filter((l) => l.status === "ACTIVE").length;
+  const exceptions = leases.filter((l) => l.status === "DRAFT").length;
+  const score = leases.length ? Math.round((activeCount / leases.length) * 100) : 100;
+  const dateLabel = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).toUpperCase();
 
-  // ROU composition by asset category
+  // Ring geometry
+  const R = 52, C = 2 * Math.PI * R;
+  const dash = (score / 100) * C;
+
   const byCategory = new Map<string, number>();
   for (const l of leases) {
     const v = parseFloat(l.current_rou_nbv ?? "0");
@@ -42,58 +54,66 @@ export default function DashboardPage() {
   const categoryTotal = categories.reduce((s, [, v]) => s + v, 0) || 1;
 
   const stats = [
-    { label: "Total ROU Asset (NBV)", value: formatCurrency(summary?.total_rou_asset_nbv ?? "0"), icon: Building2, tint: "text-edme-blue", bg: "bg-edme-blue/10", sub: undefined as string | undefined },
-    { label: "Total Lease Liability", value: formatCurrency(summary?.total_lease_liability ?? "0"), icon: TrendingDown, tint: "text-edme-red", bg: "bg-edme-red/10", sub: `Current ${formatCurrency(summary?.current_lease_liability ?? "0")} · Non-current ${formatCurrency(summary?.non_current_lease_liability ?? "0")}` },
-    { label: "Weighted Avg. Discount Rate", value: `${(parseFloat(summary?.weighted_average_discount_rate ?? "0") * 100).toFixed(2)}%`, icon: Percent, tint: "text-violet-600", bg: "bg-violet-100" },
-    { label: "Active Leases", value: String(activeCount), icon: FileCheck2, tint: "text-emerald-600", bg: "bg-emerald-100" },
+    { label: "TOTAL ROU ASSET (NBV)", value: formatCurrency(summary?.total_rou_asset_nbv ?? "0"), icon: Building2, dot: "bg-edme-blue", sub: "Right-of-use assets, net" },
+    { label: "LEASE LIABILITY", value: formatCurrency(summary?.total_lease_liability ?? "0"), icon: TrendingDown, dot: "bg-edme-red", sub: `Current ${formatCurrency(summary?.current_lease_liability ?? "0")} · Non-cur ${formatCurrency(summary?.non_current_lease_liability ?? "0")}` },
+    { label: "WEIGHTED AVG. DISCOUNT RATE", value: `${(parseFloat(summary?.weighted_average_discount_rate ?? "0") * 100).toFixed(2)}%`, icon: Percent, dot: "bg-violet-500", sub: "Across active leases" },
+    { label: "ACTIVE LEASES", value: String(activeCount), icon: FileCheck2, dot: "bg-emerald-500", sub: `${exceptions} draft${exceptions === 1 ? "" : "s"} pending calculation` },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-edme-blue-deep via-edme-blue-2 to-edme-blue px-7 py-8 text-white">
-        <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-edme-red/25 blur-3xl" />
-        <div className="relative">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/60">{org?.name ?? "LeasePro AI"}</p>
-          <h1 className="mt-1 text-2xl font-bold">Portfolio overview</h1>
-          <p className="mt-1 text-sm text-white/70">
-            Lease accounting under {org?.reporting_standard === "IFRS_16" ? "IFRS 16" : "Ind AS 116"} — right-of-use assets, liabilities and disclosures at a glance.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/leases/new" className="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-edme-blue shadow-sm hover:bg-white/90">
-              New lease <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href="/reports" className="inline-flex items-center gap-1.5 rounded-lg border border-white/25 px-4 py-2 text-sm font-medium text-white hover:bg-white/10">
-              Reports &amp; disclosures
-            </Link>
+      {/* Hero with Control Score ring */}
+      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-edme-blue-deep via-edme-blue-2 to-edme-blue px-7 py-7 text-white">
+        <div aria-hidden className="pointer-events-none absolute -right-24 top-1/2 h-80 w-80 -translate-y-1/2 rounded-full bg-edme-red/20 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "26px 26px" }} />
+        <div className="relative flex items-center justify-between gap-6">
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/50">{dateLabel} · Consolidated view</p>
+            <h1 className="mt-2 text-3xl font-bold">
+              {greeting()}, <span className="font-serif italic">{(profile?.full_name ?? "Admin").split(" ")[0]}</span>
+            </h1>
+            <p className="mt-1.5 max-w-xl text-sm text-white/70">
+              Where {org?.name ?? "your organization"}&apos;s lease accounting stands today under {org?.reporting_standard === "IFRS_16" ? "IFRS 16" : "Ind AS 116"} — across every lease.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link href="/leases/new" className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-edme-blue hover:bg-white/90">New lease <ArrowRight className="h-4 w-4" /></Link>
+              <Link href="/reports" className="inline-flex items-center gap-1.5 rounded-xl border border-white/25 px-4 py-2 text-sm font-medium text-white hover:bg-white/10">Reports &amp; disclosures</Link>
+            </div>
+          </div>
+          {/* Score ring */}
+          <div className="relative hidden shrink-0 sm:block">
+            <svg width="132" height="132" viewBox="0 0 132 132" className="-rotate-90">
+              <circle cx="66" cy="66" r={R} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="10" />
+              <circle cx="66" cy="66" r={R} fill="none" stroke="#ffffff" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${dash} ${C}`} />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold">{loading ? "…" : score}</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-white/60">Portfolio score</span>
+            </div>
+            <p className="mt-2 text-center text-xs text-white/60">{exceptions} open exception{exceptions === 1 ? "" : "s"}</p>
           </div>
         </div>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map(({ label, value, icon: Icon, tint, bg, sub }) => (
-          <Card key={label}>
-            <CardContent className="flex items-center gap-4 py-5">
-              <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bg}`}>
-                <Icon className={`h-5 w-5 ${tint}`} />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-xs font-medium text-slate-500">{label}</p>
-                <p className="mt-0.5 text-xl font-semibold text-slate-900">{loading ? "…" : value}</p>
-                {sub && !loading && <p className="mt-0.5 text-[11px] text-slate-400">{sub}</p>}
-              </div>
-            </CardContent>
-          </Card>
+        {stats.map(({ label, value, dot, sub }) => (
+          <div key={label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className={`h-2 w-2 rounded-full ${dot}`} />
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+            </div>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{loading ? "…" : value}</p>
+            <p className="mt-1 text-xs text-slate-400">{sub}</p>
+          </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Recent leases */}
-        <Card className="lg:col-span-2">
+        <Card className="rounded-2xl lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recent leases</CardTitle>
-            <Link href="/leases" className="text-sm font-medium text-edme-blue hover:underline">View all</Link>
+            <Link href="/leases" className="text-sm font-medium text-edme-blue hover:underline">View all →</Link>
           </CardHeader>
           <CardContent className="p-0">
             <table className="w-full text-sm">
@@ -125,8 +145,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* ROU composition */}
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader><CardTitle>ROU assets by class</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             {categories.length === 0 && <p className="text-sm text-slate-400">Calculate a lease to see the composition.</p>}
