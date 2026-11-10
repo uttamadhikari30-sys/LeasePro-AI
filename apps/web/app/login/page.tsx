@@ -36,6 +36,7 @@ const CSS = `
 .edme-login .brandline .byco{font-weight:600;letter-spacing:.1em;color:var(--muted)}
 .edme-login .pitch h1{margin:0;font-weight:600;font-size:clamp(40px,5vw,64px);line-height:1.03;letter-spacing:-.01em;color:var(--navy);}
 .edme-login .pitch h1 em{font-style:italic;background:linear-gradient(92deg,#0e1f4d 0%,#1c3687 50%,#b3122a 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.edme-login .pitch .tagline{margin:10px 0 0;font-family:Georgia,"Times New Roman",ui-serif,serif;font-style:italic;font-size:19px;line-height:1.4;color:var(--muted);letter-spacing:0}
 .edme-login .pitch p{margin:0;max-width:34ch;font-size:16px;line-height:1.65;color:var(--muted)}
 .edme-login .feats{display:flex;flex-direction:column;gap:14px;margin-top:6px}
 .edme-login .feat{display:flex;gap:12px;align-items:flex-start}
@@ -127,8 +128,9 @@ export default function LoginPage() {
 
       <div className="wrap">
         <section className="pitch">
-          <div className="brandline"><span className="dash" /> LeasePro AI <span className="byco">· by Edme Insurance Brokers</span></div>
-          <h1 className="serif">The intelligence<br />behind every <em>lease.</em></h1>
+          <div className="brandline"><span className="dash" /> Edme Insurance Brokers Limited</div>
+          <h1 className="serif">LeasePro<em> AI</em></h1>
+          <p className="tagline">The intelligence behind every lease.</p>
           <p>Compliant lease accounting under Ind AS 116 &amp; IFRS 16 — contracts, schedules, journals and disclosures, all in one place.</p>
           <div className="feats">
             <div className="feat"><span className="ic">✶</span><div><strong>Standard-perfect by design</strong><span>Ind AS 116 &amp; IFRS 16 built into every schedule.</span></div></div>
