@@ -62,9 +62,10 @@ export function Sidebar() {
     <aside className="flex w-72 shrink-0 flex-col bg-linear-to-b from-edme-blue-deep via-edme-blue-2 to-edme-blue">
       {/* Logo + org */}
       <div className="px-5 pb-3 pt-5">
-        <div className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 shadow-sm">
+        <div className="rounded-2xl bg-white px-3 py-2.5 shadow-sm">
           <img src="/edme-logo.svg" alt="edme" className="h-7" />
         </div>
+        <p className="mt-2 px-1 font-serif text-[11px] italic leading-snug text-white/55">The intelligence behind every lease.</p>
         <div className="mt-3 flex items-center gap-2.5 rounded-xl bg-white/10 px-3 py-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-edme-red text-[11px] font-bold text-white">LP</span>
           <div className="min-w-0">
