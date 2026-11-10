@@ -135,45 +135,90 @@ export default function LeaseDetailPage() {
   const currentLiability = liabilitySchedule.at(-1);
   const currentRou = rouSchedule.at(-1);
 
+  // Lease lifecycle
+  const termMonths = lease.lease_term_months;
+  const start = new Date(lease.commencement_date);
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + termMonths);
+  const now = new Date();
+  const elapsed = Math.max(0, Math.min(termMonths, (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())));
+  const pct = termMonths ? Math.round((elapsed / termMonths) * 100) : 0;
+  const monthsRemaining = Math.max(0, termMonths - elapsed);
+  const standardLabel = org?.reporting_standard === "IFRS_16" ? "IFRS 16" : "Ind AS 116";
+  // Progress ring geometry
+  const RR = 34, RC = 2 * Math.PI * RR;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{lease.lease_code}</h1>
-            <Badge variant={statusVariant(lease.status)}>{lease.status}</Badge>
+      {/* Premium lease hero */}
+      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-edme-blue-deep via-edme-blue-2 to-edme-blue px-7 py-7 text-white">
+        <div aria-hidden className="pointer-events-none absolute -right-24 top-1/2 h-80 w-80 -translate-y-1/2 rounded-full bg-edme-red/20 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "26px 26px" }} />
+        <div className="relative flex flex-wrap items-center justify-between gap-6">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-bold tracking-tight">{lease.lease_code}</h1>
+              <Badge variant={statusVariant(lease.status)}>{lease.status}</Badge>
+              <span className="rounded-full border border-white/25 px-2.5 py-0.5 text-[11px] font-medium text-white/80">{standardLabel}</span>
+            </div>
+            <p className="mt-1.5 text-sm text-white/75">{lease.asset_name} · {lease.asset_category}{lease.location ? ` · ${lease.location}` : ""}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+              <span className="flex items-center gap-1.5 text-white/80"><span className="text-white/45">Commenced</span> <span className="font-medium">{formatDate(lease.commencement_date)}</span></span>
+              <span className="flex items-center gap-1.5 text-white/80"><span className="text-white/45">Ends</span> <span className="font-medium">{formatDate(end.toISOString())}</span></span>
+              <span className="flex items-center gap-1.5 text-white/80"><span className="text-white/45">Term</span> <span className="font-medium">{termMonths} months</span></span>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button onClick={handleCalculate} disabled={calculating} className="bg-white text-edme-blue hover:bg-white/90">
+                {calculating ? "Calculating…" : liabilitySchedule.length ? "Recalculate" : "Calculate schedules"}
+              </Button>
+              <button onClick={() => setTab("memo")} className="inline-flex items-center gap-1.5 rounded-xl border border-white/25 px-4 py-2 text-sm font-medium text-white hover:bg-white/10">
+                Accounting memo
+              </button>
+            </div>
           </div>
-          <p className="text-sm text-slate-500">{lease.asset_name} &middot; {lease.asset_category}</p>
+          {/* Lifecycle ring */}
+          <div className="relative hidden shrink-0 sm:block">
+            <svg width="92" height="92" viewBox="0 0 92 92" className="-rotate-90">
+              <circle cx="46" cy="46" r={RR} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" />
+              <circle cx="46" cy="46" r={RR} fill="none" stroke="#ffffff" strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(pct / 100) * RC} ${RC}`} />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-xl font-bold">{pct}%</span>
+              <span className="text-[8px] font-semibold uppercase tracking-wider text-white/60">Elapsed</span>
+            </div>
+            <p className="mt-2 text-center text-xs text-white/60">{monthsRemaining} mo remaining</p>
+          </div>
         </div>
-        <Button onClick={handleCalculate} disabled={calculating}>
-          {calculating ? "Calculating…" : liabilitySchedule.length ? "Recalculate" : "Calculate schedules"}
-        </Button>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader><CardTitle>Lease liability (current)</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-semibold">{currentLiability ? formatCurrency(currentLiability.closing_liability) : "—"}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>ROU asset NBV (current)</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-semibold">{currentRou ? formatCurrency(currentRou.closing_nbv) : "—"}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Discount rate</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-semibold">{(parseFloat(lease.discount_rate_annual) * 100).toFixed(2)}%</p></CardContent>
-        </Card>
+      {/* Metric tiles */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "LEASE LIABILITY", value: currentLiability ? formatCurrency(currentLiability.closing_liability, lease.currency) : "—", dot: "bg-edme-red", sub: "Current carrying amount" },
+          { label: "ROU ASSET NBV", value: currentRou ? formatCurrency(currentRou.closing_nbv, lease.currency) : "—", dot: "bg-edme-blue", sub: "Net book value" },
+          { label: "DISCOUNT RATE", value: `${(parseFloat(lease.discount_rate_annual) * 100).toFixed(2)}%`, dot: "bg-violet-500", sub: lease.payment_timing === "ADVANCE" ? "Payable in advance" : "Payable in arrears" },
+          { label: "PAYMENT", value: `${formatCurrency(lease.base_payment_amount, lease.currency)}`, dot: "bg-emerald-500", sub: `per ${lease.payment_frequency.toLowerCase()}` },
+        ].map((s) => (
+          <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className={`h-2 w-2 rounded-full ${s.dot}`} />
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{s.label}</p>
+            </div>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{s.value}</p>
+            <p className="mt-1 text-xs text-slate-400">{s.sub}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
         {(["overview", "liability", "rou", "journals", "memo", "whatif", "modify"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium capitalize ${
-              tab === t ? "border-b-2 border-edme-blue text-edme-blue" : "text-slate-500 hover:text-slate-700"
+            className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium capitalize transition ${
+              tab === t ? "bg-edme-blue text-white shadow-sm" : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
             }`}
           >
             {t === "rou" ? "ROU Schedule" : t === "liability" ? "Liability Schedule" : t === "whatif" ? "What-If" : t === "memo" ? "Accounting Memo" : t}
