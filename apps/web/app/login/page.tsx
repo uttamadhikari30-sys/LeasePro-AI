@@ -126,9 +126,9 @@ export default function LoginPage() {
 
       <div className="wrap">
         <section className="pitch">
-          <div className="brandline"><span className="dash" /> Edme Insurance Brokers · LeasePro AI</div>
-          <h1 className="serif">Clarity,<br />in <em>complexity.</em></h1>
-          <p>Smart lease accounting for Ind AS 116 &amp; IFRS 16 — contracts, schedules, journals and disclosures, end to end.</p>
+          <div className="brandline"><span className="dash" /> Edme Insurance Brokers Limited</div>
+          <h1 className="serif">Every lease,<br />in <em>perfect order.</em></h1>
+          <p>Compliant lease accounting under Ind AS 116 &amp; IFRS 16 — contracts, schedules, journals and disclosures, all in one place.</p>
           <div className="feats">
             <div className="feat"><span className="ic">✶</span><div><strong>Bank-grade security</strong><span>Encrypted sessions, every action audited.</span></div></div>
             <div className="feat"><span className="ic">◈</span><div><strong>Role-based access</strong><span>People see exactly what they should — no more.</span></div></div>
@@ -142,7 +142,7 @@ export default function LoginPage() {
             <img className="logo" src="/edme-logo.svg" alt="edme" />
             <div className="kicker">Secure sign-in</div>
             <h2 className="serif">Welcome back</h2>
-            <p className="subt">Sign in to continue to your LeasePro AI workspace.</p>
+            <p className="subt">Sign in to continue to your lease accounting workspace.</p>
 
             <div className="field">
               <label htmlFor="email">Work email</label>
