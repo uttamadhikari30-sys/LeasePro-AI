@@ -93,10 +93,10 @@ export default function DashboardPage() {
     .slice(0, 5);
 
   const stats = [
-    { label: "TOTAL ROU ASSET (NBV)", value: formatCurrency(summary?.total_rou_asset_nbv ?? "0", ccy), icon: Building2, dot: "bg-edme-blue", sub: "Right-of-use assets, net" },
-    { label: "LEASE LIABILITY", value: formatCurrency(summary?.total_lease_liability ?? "0", ccy), icon: TrendingDown, dot: "bg-edme-red", sub: `Current ${compact(current, ccy)} · Non-cur ${compact(nonCurrent, ccy)}` },
-    { label: "WEIGHTED AVG. DISCOUNT RATE", value: `${(parseFloat(summary?.weighted_average_discount_rate ?? "0") * 100).toFixed(2)}%`, icon: Percent, dot: "bg-violet-500", sub: "Across active leases" },
-    { label: "CASH OUTFLOW (YTD)", value: formatCurrency(summary?.total_cash_outflow_ytd ?? "0", ccy), icon: Banknote, dot: "bg-emerald-500", sub: `${activeCount} active · ${exceptions} draft${exceptions === 1 ? "" : "s"}` },
+    { label: "TOTAL ROU ASSET (NBV)", value: formatCurrency(summary?.total_rou_asset_nbv ?? "0", ccy), icon: Building2, tint: "bg-edme-blue/10 text-edme-blue", sub: "Right-of-use assets, net" },
+    { label: "LEASE LIABILITY", value: formatCurrency(summary?.total_lease_liability ?? "0", ccy), icon: TrendingDown, tint: "bg-edme-red/10 text-edme-red", sub: `Current ${compact(current, ccy)} · Non-cur ${compact(nonCurrent, ccy)}` },
+    { label: "WEIGHTED AVG. DISCOUNT RATE", value: `${(parseFloat(summary?.weighted_average_discount_rate ?? "0") * 100).toFixed(2)}%`, icon: Percent, tint: "bg-violet-100 text-violet-600", sub: "Across active leases" },
+    { label: "CASH OUTFLOW (YTD)", value: formatCurrency(summary?.total_cash_outflow_ytd ?? "0", ccy), icon: Banknote, tint: "bg-emerald-100 text-emerald-600", sub: `${activeCount} active · ${exceptions} draft${exceptions === 1 ? "" : "s"}` },
   ];
 
   return (
@@ -136,13 +136,13 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map(({ label, value, dot, sub }) => (
-          <div key={label} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-            <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${dot}`} />
+        {stats.map(({ label, value, icon: Icon, tint, sub }) => (
+          <div key={label} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="flex items-start justify-between gap-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tint}`}><Icon className="h-4 w-4" /></span>
             </div>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{loading ? "…" : value}</p>
+            <p className="mt-3 text-[26px] font-bold leading-tight text-slate-900">{loading ? "…" : value}</p>
             <p className="mt-1 text-xs text-slate-400">{sub}</p>
           </div>
         ))}
@@ -162,20 +162,37 @@ export default function DashboardPage() {
             {maturity.length === 0 ? (
               <p className="py-10 text-center text-sm text-slate-400">Calculate leases to build the maturity profile.</p>
             ) : (
-              <div className="flex h-56 items-stretch gap-4 pt-4">
-                {maturity.map((b, i) => {
-                  const h = Math.max(4, (b.value / maxMat) * 100);
-                  return (
-                    <div key={b.label} className="group flex flex-1 flex-col items-center justify-end gap-2">
-                      <span className="text-[11px] font-semibold text-slate-500">{compact(b.value, ccy)}</span>
-                      <div className="relative w-full overflow-hidden rounded-t-lg" style={{ height: `${h}%`, minHeight: 6, background: `linear-gradient(180deg, ${CATEGORY_COLORS[i % CATEGORY_COLORS.length]}, ${CATEGORY_COLORS[i % CATEGORY_COLORS.length]}cc)` }}>
-                        <div className="absolute inset-x-0 top-0 h-1/3 bg-white/15" />
-                      </div>
-                      <span className="text-center text-[11px] font-medium leading-tight text-slate-500">{b.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
+              <>
+                <div className="relative h-56 pt-5">
+                  {/* gridlines */}
+                  {[100, 75, 50, 25, 0].map((p) => (
+                    <div key={p} className="absolute inset-x-0 border-t border-dashed border-slate-100" style={{ bottom: `${p}%` }} />
+                  ))}
+                  {/* bars */}
+                  <div className="absolute inset-x-0 bottom-0 top-5 flex items-end gap-5">
+                    {maturity.map((b) => {
+                      const h = Math.max(2, (b.value / maxMat) * 100);
+                      return (
+                        <div key={b.label} className="group relative h-full flex-1">
+                          <div className="absolute inset-x-0 bottom-0 rounded-t-md transition-[filter] group-hover:brightness-110" style={{ height: `${h}%`, minHeight: 6, background: "linear-gradient(180deg,#5277db,#3b5bb5)" }}>
+                            <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-md bg-white/20" />
+                          </div>
+                          <div className="absolute inset-x-0 text-center text-[11px] font-semibold text-slate-600" style={{ bottom: `calc(${h}% + 6px)` }}>{compact(b.value, ccy)}</div>
+                          <div className="pointer-events-none absolute left-1/2 top-1 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100">
+                            {b.label}: {formatCurrency(b.value, ccy)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="h-px w-full bg-slate-200" />
+                <div className="mt-2 flex gap-5">
+                  {maturity.map((b) => (
+                    <div key={b.label} className="flex-1 text-center text-[11px] font-medium leading-tight text-slate-500">{b.label}</div>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -187,7 +204,7 @@ export default function DashboardPage() {
               <div className="relative">
                 <svg width="150" height="150" viewBox="0 0 150 150" className="-rotate-90">
                   <circle cx="75" cy="75" r={DR} fill="none" stroke="#eef1f8" strokeWidth="16" />
-                  <circle cx="75" cy="75" r={DR} fill="none" stroke="#1c3687" strokeWidth="16" strokeDasharray={`${curPct * DC} ${DC}`} strokeLinecap="round" />
+                  <circle cx="75" cy="75" r={DR} fill="none" stroke="#3b5bb5" strokeWidth="16" strokeDasharray={`${curPct * DC} ${DC}`} strokeLinecap="round" />
                   <circle cx="75" cy="75" r={DR} fill="none" stroke="#ed1b2f" strokeWidth="16" strokeDasharray={`${(1 - curPct) * DC} ${DC}`} strokeDashoffset={`${-curPct * DC}`} strokeLinecap="round" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -198,7 +215,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-4 space-y-2.5">
               <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full bg-edme-blue" /> Current (≤ 12 mo)</span>
+                <span className="flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#3b5bb5" }} /> Current (≤ 12 mo)</span>
                 <span className="font-medium text-slate-900">{formatCurrency(current, ccy)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
