@@ -16,14 +16,20 @@ import type {
 } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ModifyLeaseForm } from "@/components/modify-lease-form";
+import { LeaseMemo } from "@/components/lease-memo";
+import { useOrganization, useProfile } from "@/lib/profile-context";
+import type { Lessor } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type Tab = "overview" | "liability" | "rou" | "journals" | "whatif" | "modify";
+type Tab = "overview" | "liability" | "rou" | "journals" | "memo" | "whatif" | "modify";
 
 export default function LeaseDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const org = useOrganization();
+  const profile = useProfile();
   const [lease, setLease] = useState<Lease | null>(null);
+  const [lessorName, setLessorName] = useState<string | null>(null);
   const [liabilitySchedule, setLiabilitySchedule] = useState<LiabilityScheduleRow[]>([]);
   const [rouSchedule, setRouSchedule] = useState<RouScheduleRow[]>([]);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
@@ -38,7 +44,12 @@ export default function LeaseDetailPage() {
   const [simulating, setSimulating] = useState(false);
 
   function loadAll() {
-    api.get<Lease>(`/leases/${id}`).then(setLease);
+    api.get<Lease>(`/leases/${id}`).then((l) => {
+      setLease(l);
+      api.get<Lessor[]>("/lessors")
+        .then((list) => setLessorName(list.find((x) => x.id === l.lessor_id)?.name ?? null))
+        .catch(() => {});
+    });
     api.get<LiabilityScheduleRow[]>(`/leases/${id}/liability-schedule`).then(setLiabilitySchedule);
     api.get<RouScheduleRow[]>(`/leases/${id}/rou-schedule`).then(setRouSchedule);
     api.get<JournalEntry[]>(`/leases/${id}/journals`).then(setJournals);
@@ -157,7 +168,7 @@ export default function LeaseDetailPage() {
       </div>
 
       <div className="flex gap-1 border-b border-slate-200">
-        {(["overview", "liability", "rou", "journals", "whatif", "modify"] as Tab[]).map((t) => (
+        {(["overview", "liability", "rou", "journals", "memo", "whatif", "modify"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -165,7 +176,7 @@ export default function LeaseDetailPage() {
               tab === t ? "border-b-2 border-edme-blue text-edme-blue" : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            {t === "rou" ? "ROU Schedule" : t === "liability" ? "Liability Schedule" : t === "whatif" ? "What-If" : t}
+            {t === "rou" ? "ROU Schedule" : t === "liability" ? "Liability Schedule" : t === "whatif" ? "What-If" : t === "memo" ? "Accounting Memo" : t}
           </button>
         ))}
       </div>
@@ -283,6 +294,18 @@ export default function LeaseDetailPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {tab === "memo" && (
+        <LeaseMemo
+          lease={lease}
+          org={org}
+          profile={profile}
+          liability={liabilitySchedule}
+          rou={rouSchedule}
+          journals={journals}
+          lessorName={lessorName}
+        />
       )}
 
       {tab === "whatif" && (
