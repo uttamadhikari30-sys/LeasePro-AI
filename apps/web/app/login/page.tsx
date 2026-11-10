@@ -127,12 +127,12 @@ export default function LoginPage() {
       <div className="wrap">
         <section className="pitch">
           <div className="brandline"><span className="dash" /> Edme Insurance Brokers Limited</div>
-          <h1 className="serif">Every lease,<br />in <em>perfect order.</em></h1>
+          <h1 className="serif">The intelligence<br />behind every <em>lease.</em></h1>
           <p>Compliant lease accounting under Ind AS 116 &amp; IFRS 16 — contracts, schedules, journals and disclosures, all in one place.</p>
           <div className="feats">
-            <div className="feat"><span className="ic">✶</span><div><strong>Bank-grade security</strong><span>Encrypted sessions, every action audited.</span></div></div>
-            <div className="feat"><span className="ic">◈</span><div><strong>Role-based access</strong><span>People see exactly what they should — no more.</span></div></div>
-            <div className="feat"><span className="ic">⤢</span><div><strong>Built for scale</strong><span>From a single entity to the whole group.</span></div></div>
+            <div className="feat"><span className="ic">✶</span><div><strong>Standard-perfect by design</strong><span>Ind AS 116 &amp; IFRS 16 built into every schedule.</span></div></div>
+            <div className="feat"><span className="ic">◈</span><div><strong>One source of truth</strong><span>Contracts, journals and disclosures in one system.</span></div></div>
+            <div className="feat"><span className="ic">⤢</span><div><strong>Audit-ready, always</strong><span>Every figure traceable, every action logged.</span></div></div>
           </div>
         </section>
 
