@@ -3,6 +3,52 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Brand palette — overridable per theme (see [data-theme] below) */
+  --edme-blue-deep: #0b1b5e;
+  --edme-blue-2: #15287a;
+  --edme-blue: #1c3687;
+  --edme-red: #ed1b2f;
+  --edme-red-2: #c81528;
+  /* Chart accents (validated mid-lightness hues) */
+  --chart-accent: #3b5bb5;
+  --chart-accent-2: #5277db;
+}
+
+/* ============================= THEMES ============================= *
+ * Each theme recolors the brand accents used across the sidebar,
+ * hero, buttons, badges and charts. Surfaces stay light & premium.
+ * ================================================================= */
+
+/* 2 · Royal Indigo */
+:root[data-theme="indigo"] {
+  --edme-blue-deep: #312e81; --edme-blue-2: #4338ca; --edme-blue: #4f46e5;
+  --edme-red: #db2777; --edme-red-2: #be185d;
+  --chart-accent: #6366f1; --chart-accent-2: #818cf8;
+}
+/* 3 · Ocean */
+:root[data-theme="ocean"] {
+  --edme-blue-deep: #0c4a6e; --edme-blue-2: #075985; --edme-blue: #0284c7;
+  --edme-red: #0d9488; --edme-red-2: #0f766e;
+  --chart-accent: #0ea5e9; --chart-accent-2: #38bdf8;
+}
+/* 4 · Emerald */
+:root[data-theme="emerald"] {
+  --edme-blue-deep: #064e3b; --edme-blue-2: #047857; --edme-blue: #059669;
+  --edme-red: #d97706; --edme-red-2: #b45309;
+  --chart-accent: #10b981; --chart-accent-2: #34d399;
+}
+/* 5 · Graphite */
+:root[data-theme="graphite"] {
+  --edme-blue-deep: #0f172a; --edme-blue-2: #334155; --edme-blue: #475569;
+  --edme-red: #e11d48; --edme-red-2: #be123c;
+  --chart-accent: #64748b; --chart-accent-2: #94a3b8;
+}
+/* 6 · Plum */
+:root[data-theme="plum"] {
+  --edme-blue-deep: #581c87; --edme-blue-2: #7e22ce; --edme-blue: #9333ea;
+  --edme-red: #e11d48; --edme-red-2: #be123c;
+  --chart-accent: #a855f7; --chart-accent-2: #c084fc;
 }
 
 @theme inline {
@@ -11,19 +57,12 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Edme Insurance Brokers Limited brand palette */
-  --color-edme-blue: #1c3687;
-  --color-edme-blue-2: #15287a;
-  --color-edme-blue-deep: #0b1b5e;
-  --color-edme-red: #ed1b2f;
-  --color-edme-red-2: #c81528;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Edme Insurance Brokers Limited brand palette (themeable) */
+  --color-edme-blue: var(--edme-blue);
+  --color-edme-blue-2: var(--edme-blue-2);
+  --color-edme-blue-deep: var(--edme-blue-deep);
+  --color-edme-red: var(--edme-red);
+  --color-edme-red-2: var(--edme-red-2);
 }
 
 body {

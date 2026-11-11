@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, LogOut } from "lucide-react";
 import { Sidebar } from "@/components/sidebar";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { api } from "@/lib/api";
+import { createClient } from "@/lib/supabase/client";
 import { OrganizationContext, ProfileContext } from "@/lib/profile-context";
 import type { Organization, Profile } from "@/lib/types";
 
@@ -19,6 +21,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [ready, setReady] = useState(false);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   useEffect(() => {
     Promise.all([
@@ -58,6 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 />
               </div>
               <div className="ml-auto flex items-center gap-3">
+                <ThemeSwitcher />
                 <div className="hidden text-right sm:block">
                   <p className="text-sm font-semibold leading-tight text-slate-900">{profile?.full_name ?? "Admin"}</p>
                   <p className="text-xs leading-tight text-slate-400">
@@ -67,6 +77,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-edme-blue to-edme-blue-2 text-sm font-bold text-white shadow-sm">
                   {initials(profile?.full_name)}
                 </span>
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 rounded-xl bg-edme-red px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-edme-red-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign out</span>
+                </button>
               </div>
             </header>
 

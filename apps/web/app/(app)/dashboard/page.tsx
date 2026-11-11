@@ -174,7 +174,7 @@ export default function DashboardPage() {
                       const h = Math.max(2, (b.value / maxMat) * 100);
                       return (
                         <div key={b.label} className="group relative h-full flex-1">
-                          <div className="absolute inset-x-0 bottom-0 rounded-t-md transition-[filter] group-hover:brightness-110" style={{ height: `${h}%`, minHeight: 6, background: "linear-gradient(180deg,#5277db,#3b5bb5)" }}>
+                          <div className="absolute inset-x-0 bottom-0 rounded-t-md transition-[filter] group-hover:brightness-110" style={{ height: `${h}%`, minHeight: 6, background: "linear-gradient(180deg,var(--chart-accent-2),var(--chart-accent))" }}>
                             <div className="absolute inset-x-0 top-0 h-1/3 rounded-t-md bg-white/20" />
                           </div>
                           <div className="absolute inset-x-0 text-center text-[11px] font-semibold text-slate-600" style={{ bottom: `calc(${h}% + 6px)` }}>{compact(b.value, ccy)}</div>
@@ -204,18 +204,22 @@ export default function DashboardPage() {
               <div className="relative">
                 <svg width="150" height="150" viewBox="0 0 150 150" className="-rotate-90">
                   <circle cx="75" cy="75" r={DR} fill="none" stroke="#eef1f8" strokeWidth="16" />
-                  <circle cx="75" cy="75" r={DR} fill="none" stroke="#3b5bb5" strokeWidth="16" strokeDasharray={`${curPct * DC} ${DC}`} strokeLinecap="round" />
-                  <circle cx="75" cy="75" r={DR} fill="none" stroke="#ed1b2f" strokeWidth="16" strokeDasharray={`${(1 - curPct) * DC} ${DC}`} strokeDashoffset={`${-curPct * DC}`} strokeLinecap="round" />
+                  {totalLiab > 0 && (
+                    <>
+                      <circle cx="75" cy="75" r={DR} fill="none" stroke="var(--chart-accent)" strokeWidth="16" strokeDasharray={`${curPct * DC} ${DC}`} strokeLinecap="round" />
+                      <circle cx="75" cy="75" r={DR} fill="none" stroke="var(--edme-red)" strokeWidth="16" strokeDasharray={`${(1 - curPct) * DC} ${DC}`} strokeDashoffset={`${-curPct * DC}`} strokeLinecap="round" />
+                    </>
+                  )}
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total</span>
-                  <span className="text-base font-bold text-slate-900">{compact(totalLiab, ccy)}</span>
+                  <span className="text-base font-bold text-slate-900">{totalLiab > 0 ? compact(totalLiab, ccy) : "—"}</span>
                 </div>
               </div>
             </div>
             <div className="mt-4 space-y-2.5">
               <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#3b5bb5" }} /> Current (≤ 12 mo)</span>
+                <span className="flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--chart-accent)" }} /> Current (≤ 12 mo)</span>
                 <span className="font-medium text-slate-900">{formatCurrency(current, ccy)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
