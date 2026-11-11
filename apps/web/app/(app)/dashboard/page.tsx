@@ -207,7 +207,7 @@ export default function DashboardPage() {
                   {totalLiab > 0 && (
                     <>
                       <circle cx="75" cy="75" r={DR} fill="none" stroke="var(--chart-accent)" strokeWidth="16" strokeDasharray={`${curPct * DC} ${DC}`} strokeLinecap="round" />
-                      <circle cx="75" cy="75" r={DR} fill="none" stroke="var(--edme-red)" strokeWidth="16" strokeDasharray={`${(1 - curPct) * DC} ${DC}`} strokeDashoffset={`${-curPct * DC}`} strokeLinecap="round" />
+                      <circle cx="75" cy="75" r={DR} fill="none" stroke="var(--chart-neg)" strokeWidth="16" strokeDasharray={`${(1 - curPct) * DC} ${DC}`} strokeDashoffset={`${-curPct * DC}`} strokeLinecap="round" />
                     </>
                   )}
                 </svg>
@@ -223,7 +223,7 @@ export default function DashboardPage() {
                 <span className="font-medium text-slate-900">{formatCurrency(current, ccy)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full bg-edme-red" /> Non-current (&gt; 12 mo)</span>
+                <span className="flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--chart-neg)" }} /> Non-current (&gt; 12 mo)</span>
                 <span className="font-medium text-slate-900">{formatCurrency(nonCurrent, ccy)}</span>
               </div>
             </div>

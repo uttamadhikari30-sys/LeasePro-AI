@@ -5,50 +5,51 @@
   --foreground: #171717;
 
   /* Brand palette — overridable per theme (see [data-theme] below) */
-  --edme-blue-deep: #0b1b5e;
-  --edme-blue-2: #15287a;
-  --edme-blue: #1c3687;
-  --edme-red: #ed1b2f;
-  --edme-red-2: #c81528;
-  /* Chart accents (validated mid-lightness hues) */
-  --chart-accent: #3b5bb5;
-  --chart-accent-2: #5277db;
+  --edme-blue-deep: #0d1733;
+  --edme-blue-2: #1a2a5e;
+  --edme-blue: #243a80;
+  --edme-red: #e0384a;
+  --edme-red-2: #c22e3e;
+  /* Chart accents — validated, mid-lightness premium hues */
+  --chart-accent: #3a56b0;   /* primary series / bars */
+  --chart-accent-2: #5c79e0; /* bar gradient top */
+  --chart-neg: #dd6374;      /* second donut segment (soft coral) */
 }
 
 /* ============================= THEMES ============================= *
- * Each theme recolors the brand accents used across the sidebar,
- * hero, buttons, badges and charts. Surfaces stay light & premium.
+ * Sophisticated, muted palettes. Deep primaries for the hero/sidebar,
+ * refined accents, CVD-validated chart hues. Surfaces stay light.
  * ================================================================= */
 
-/* 2 · Royal Indigo */
-:root[data-theme="indigo"] {
-  --edme-blue-deep: #312e81; --edme-blue-2: #4338ca; --edme-blue: #4f46e5;
-  --edme-red: #db2777; --edme-red-2: #be185d;
-  --chart-accent: #6366f1; --chart-accent-2: #818cf8;
-}
-/* 3 · Ocean */
-:root[data-theme="ocean"] {
-  --edme-blue-deep: #0c4a6e; --edme-blue-2: #075985; --edme-blue: #0284c7;
-  --edme-red: #0d9488; --edme-red-2: #0f766e;
-  --chart-accent: #0ea5e9; --chart-accent-2: #38bdf8;
-}
-/* 4 · Emerald */
-:root[data-theme="emerald"] {
-  --edme-blue-deep: #064e3b; --edme-blue-2: #047857; --edme-blue: #059669;
-  --edme-red: #d97706; --edme-red-2: #b45309;
-  --chart-accent: #10b981; --chart-accent-2: #34d399;
-}
-/* 5 · Graphite */
+/* 2 · Graphite */
 :root[data-theme="graphite"] {
-  --edme-blue-deep: #0f172a; --edme-blue-2: #334155; --edme-blue: #475569;
-  --edme-red: #e11d48; --edme-red-2: #be123c;
-  --chart-accent: #64748b; --chart-accent-2: #94a3b8;
+  --edme-blue-deep: #1b2436; --edme-blue-2: #2a3850; --edme-blue: #3a4c6e;
+  --edme-red: #d05a5a; --edme-red-2: #b84848;
+  --chart-accent: #3a56b0; --chart-accent-2: #5c79e0; --chart-neg: #dd6374;
 }
-/* 6 · Plum */
-:root[data-theme="plum"] {
-  --edme-blue-deep: #581c87; --edme-blue-2: #7e22ce; --edme-blue: #9333ea;
-  --edme-red: #e11d48; --edme-red-2: #be123c;
-  --chart-accent: #a855f7; --chart-accent-2: #c084fc;
+/* 3 · Petrol */
+:root[data-theme="petrol"] {
+  --edme-blue-deep: #0c2f3c; --edme-blue-2: #0f4a5c; --edme-blue: #136073;
+  --edme-red: #e06a52; --edme-red-2: #c5553f;
+  --chart-accent: #1b8aa8; --chart-accent-2: #45b3cf; --chart-neg: #e0906a;
+}
+/* 4 · Forest */
+:root[data-theme="forest"] {
+  --edme-blue-deep: #143528; --edme-blue-2: #1c4a3a; --edme-blue: #25604c;
+  --edme-red: #d08841; --edme-red-2: #b5702f;
+  --chart-accent: #2f9e6f; --chart-accent-2: #58c295; --chart-neg: #d9a24a;
+}
+/* 5 · Aubergine */
+:root[data-theme="aubergine"] {
+  --edme-blue-deep: #2c1a40; --edme-blue-2: #432459; --edme-blue: #5a3175;
+  --edme-red: #d85a95; --edme-red-2: #c04a84;
+  --chart-accent: #9a5cc4; --chart-accent-2: #b983e0; --chart-neg: #d8a24a;
+}
+/* 6 · Bordeaux */
+:root[data-theme="bordeaux"] {
+  --edme-blue-deep: #3a1420; --edme-blue-2: #5a1b2e; --edme-blue: #78243d;
+  --edme-red: #c99a4a; --edme-red-2: #b07f32;
+  --chart-accent: #c25267; --chart-accent-2: #d87f90; --chart-neg: #c99a4a;
 }
 
 @theme inline {

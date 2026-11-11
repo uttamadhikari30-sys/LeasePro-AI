@@ -6,12 +6,12 @@ import { Check, Palette } from "lucide-react";
 type Theme = { id: string; name: string; swatch: [string, string, string] };
 
 const THEMES: Theme[] = [
-  { id: "classic", name: "Edme Classic", swatch: ["#0b1b5e", "#1c3687", "#ed1b2f"] },
-  { id: "indigo", name: "Royal Indigo", swatch: ["#312e81", "#4f46e5", "#db2777"] },
-  { id: "ocean", name: "Ocean", swatch: ["#0c4a6e", "#0284c7", "#0d9488"] },
-  { id: "emerald", name: "Emerald", swatch: ["#064e3b", "#059669", "#d97706"] },
-  { id: "graphite", name: "Graphite", swatch: ["#0f172a", "#475569", "#e11d48"] },
-  { id: "plum", name: "Plum", swatch: ["#581c87", "#9333ea", "#e11d48"] },
+  { id: "classic", name: "Edme Classic", swatch: ["#0d1733", "#243a80", "#e0384a"] },
+  { id: "graphite", name: "Graphite", swatch: ["#1b2436", "#3a4c6e", "#d05a5a"] },
+  { id: "petrol", name: "Petrol", swatch: ["#0c2f3c", "#136073", "#e06a52"] },
+  { id: "forest", name: "Forest", swatch: ["#143528", "#25604c", "#d08841"] },
+  { id: "aubergine", name: "Aubergine", swatch: ["#2c1a40", "#5a3175", "#d85a95"] },
+  { id: "bordeaux", name: "Bordeaux", swatch: ["#3a1420", "#78243d", "#c99a4a"] },
 ];
 
 function applyTheme(id: string) {
