@@ -76,7 +76,7 @@ const CSS = `
 .edme-login .foot{margin-top:18px;text-align:center;font-size:12.5px;color:#8795b8}
 .edme-login .ssodiv{display:flex;align-items:center;gap:12px;margin:18px 0 14px;color:#9aa6c4;font-size:11.5px;font-weight:600;letter-spacing:.03em}
 .edme-login .ssodiv::before,.edme-login .ssodiv::after{content:"";flex:1;height:1px;background:rgba(16,30,64,.12)}
-.edme-login .ssorow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.edme-login .ssorow{display:grid;grid-template-columns:1fr;gap:10px}
 .edme-login .ssobtn{display:flex;align-items:center;justify-content:center;gap:9px;height:46px;border-radius:13px;border:1px solid rgba(16,30,64,.14);background:rgba(255,255,255,.72);font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;transition:.16s}
 .edme-login .ssobtn:hover{background:#fff;border-color:var(--blue);box-shadow:0 0 0 4px rgba(28,54,135,.08)}
 .edme-login .ssobtn:disabled{opacity:.6;cursor:default}
@@ -94,9 +94,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [ssoLoading, setSsoLoading] = useState<null | "google" | "azure">(null);
+  const [ssoLoading, setSsoLoading] = useState<null | "azure">(null);
 
-  async function handleOAuth(provider: "google" | "azure") {
+  async function handleOAuth(provider: "azure") {
     setError(null);
     setSsoLoading(provider);
     const supabase = createClient();
@@ -108,7 +108,7 @@ export default function LoginPage() {
       setSsoLoading(null);
       setError(
         /provider is not enabled/i.test(error.message)
-          ? `${provider === "google" ? "Google" : "Microsoft"} sign-in isn't enabled yet. Ask your admin to turn it on.`
+          ? `Microsoft sign-in isn't enabled yet. Ask your admin to turn it on.`
           : error.message
       );
     }
@@ -223,21 +223,13 @@ export default function LoginPage() {
 
             <div className="ssodiv"><span>Or continue with</span></div>
             <div className="ssorow">
-              <button type="button" className="ssobtn" onClick={() => handleOAuth("google")} disabled={!!ssoLoading}>
-                {ssoLoading === "google" ? (
-                  <svg className="spin" width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#1c3687" strokeWidth="2.5" opacity="0.25" /><path d="M18 10a8 8 0 0 0-8-8" stroke="#1c3687" strokeWidth="2.5" strokeLinecap="round" /></svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4.5 24 4.5 16.3 4.5 9.7 8.9 6.3 14.7z"/><path fill="#4CAF50" d="M24 43.5c5.4 0 10.3-2 14-5.3l-6.5-5.5c-2 1.5-4.6 2.3-7.5 2.3-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.6 39 16.2 43.5 24 43.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6.5 5.5c-.5.4 7-5 7-15 0-1.2-.1-2.3-.4-3.5z"/></svg>
-                )}
-                Google
-              </button>
               <button type="button" className="ssobtn" onClick={() => handleOAuth("azure")} disabled={!!ssoLoading}>
                 {ssoLoading === "azure" ? (
                   <svg className="spin" width="18" height="18" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#1c3687" strokeWidth="2.5" opacity="0.25" /><path d="M18 10a8 8 0 0 0-8-8" stroke="#1c3687" strokeWidth="2.5" strokeLinecap="round" /></svg>
                 ) : (
                   <svg width="16" height="16" viewBox="0 0 23 23"><path fill="#f25022" d="M1 1h10v10H1z"/><path fill="#7fba00" d="M12 1h10v10H12z"/><path fill="#00a4ef" d="M1 12h10v10H1z"/><path fill="#ffb900" d="M12 12h10v10H12z"/></svg>
                 )}
-                Microsoft
+                Sign in with Microsoft
               </button>
             </div>
 
